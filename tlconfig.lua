@@ -9,6 +9,5 @@ return {
 
     include_dir = {
         "include",
-        "src",
     },
 }
