@@ -1,11 +1,14 @@
 return {
-   build_dir = "lua",
-   source_dir = "src",
+    gen_target = "5.1",
+    gen_compat = "off",
 
-   global_env_def = "include/gmod",
+    build_dir = "lua",
+    source_dir = "src",
 
-   include_dir = {
-      "include",
-      "src",
-   },
+    global_env_def = "include/gmod",
+
+    include_dir = {
+        "include",
+        "src",
+    },
 }
