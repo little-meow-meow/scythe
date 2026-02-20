@@ -168,12 +168,8 @@ function ENT:TestCollision( startpos, delta, isbox, extents, mask )
     -- print("abc")
 
     local endPos = startpos + delta
-    if endPos.z <= -118 and delta.z == -3 then
+    if endPos.z <= -136 and delta.z == -3 then
         local newHitPos = Vector( endPos.x, endPos.y, -100 )
-
-        -- Entity(1):SetGroundEntity(self)
-
-        -- print("Returned")
         return {
             HitPos = newHitPos,
             Fraction = 0.9, -- anything but 1
