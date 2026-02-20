@@ -148,16 +148,18 @@ for i = 0, (buf._len / 32) - 1 do
    texdatas[i] = texdata
 end
 
--- local seen = {}
--- for _, texdata in pairs(texdatas) do
---     local name = texdata.name
+local seen = {}
+for _, texdata in pairs(texdatas) do
+    local name = texdata.name
 
---     if name:StartsWith("gm_construct") or name:StartsWith("maps/gm_construct") then continue end
---     if seen[name] then continue end
+    -- if name:StartsWith("gm_construct") or name:StartsWith("maps/gm_construct") then continue end
+    if seen[name] then goto _continue end
 
---     seen[name] = true
---     print(name)
--- end
+    seen[name] = true
+    print(name)
+
+    ::_continue::
+end
 
 local SURF_LIGHT        = 0x0001
 local SURF_SKY2D        = 0x0002
@@ -362,18 +364,20 @@ end
 
 if SERVER then
 
-    -- physics
-    g_worldspawnPhysics = g_worldspawnPhysics
+    hook.Add( "InitPostEntity", "DynamicMapLoadPostInit", function()
+        -- physics
+        g_worldspawnPhysics = g_worldspawnPhysics
 
-    if IsValid( g_worldspawnPhysics ) then
-        g_worldspawnPhysics:Remove()
-    end
+        if IsValid( g_worldspawnPhysics ) then
+            g_worldspawnPhysics:Remove()
+        end
 
-    local vws = ents.Create( "virtual_worldspawn" )
-    -- vws:SetPos( Vector( -2000, -1000, 0 ) )
-    vws:SetPos( Vector( 0, 0, 0 ) )
-    vws:Spawn()
-    g_worldspawnPhysics = vws
+        local vws = ents.Create( "virtual_worldspawn" )
+        -- vws:SetPos( Vector( -2000, -1000, 0 ) )
+        vws:SetPos( Vector( 0, 0, 0 ) )
+        vws:Spawn()
+        g_worldspawnPhysics = vws
+    end )
 
     -- vws:BuildFromTriangles( physicsSoup )
 
@@ -389,6 +393,17 @@ if SERVER then return end
 local ZipFile = require("lib.zip")
 local zip = ZipFile.fromString(construct:GetLumpString(LUMP_PAKFILE))
 
-for _, name in ipairs(zip:getFileNames()) do
-    print("File: ", name)
+-- dump pak files to data folder
+local PREFIX = "dyncache/"
+for index, name in ipairs(zip:getFileNames()) do
+    -- print("Writing unpakked file", name)
+
+    local path = PREFIX .. name
+    if file.Exists(path, "DATA") then
+        goto _continue
+    end
+
+    file.Write(path, zip:readFile(index))
+
+    ::_continue::
 end

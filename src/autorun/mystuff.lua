@@ -1,12 +1,14 @@
 
 require("niknaks")
 
-AddCSLuaFile("bottle/bottle_sh.lua")
-include("bottle/bottle_sh.lua")
+AddCSLuaFile("lib/bit.lua")
+AddCSLuaFile("lib/bitflag.lua")
+AddCSLuaFile("lib/bitbuffer_sh.lua")
+AddCSLuaFile("lib/zip.lua")
 
 _G.__require = _G.__require or require
 
-function require(path)
+function _G.require(path)
     local luaPath = path:Replace(".", "/") .. ".lua"
     local success, ret = pcall(function()
         return { include(luaPath) }
@@ -19,10 +21,12 @@ function require(path)
     end
 end
 
+AddCSLuaFile("bottle/bottle_sh.lua")
+include("bottle/bottle_sh.lua")
 
 
-AddCSLuaFile("fold/fold.lua")
-include("fold/fold.lua")
+-- AddCSLuaFile("fold/fold.lua")
+-- include("fold/fold.lua")
 
 
 
