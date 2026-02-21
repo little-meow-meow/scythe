@@ -17,6 +17,8 @@ local LUMP_SURFEDGES = 13
 local LUMP_DISPINFO = 26
 local LUMP_ORIGINALFACES = 27
 local LUMP_PHYSDISP = 28
+local LUMP_VERTNORMALS = 30
+local LUMP_VERTNORMALINDICES = 31
 local LUMP_DISP_VERTS = 33
 local LUMP_PAKFILE = 40
 local LUMP_TEXDATA_STRING_DATA = 43
@@ -24,7 +26,7 @@ local LUMP_TEXDATA_STRING_TABLE = 44
 
 ---------------------------------------
 
-local mapName = "maps/gm_construct.bsp"
+local mapName = "maps/rp_downtown_v2.bsp"
 local construct = NikNaks.Map(mapName)
 
 -- parse planes
@@ -223,6 +225,17 @@ for i = 0, (buf._len / 72) - 1 do
     texinfos[i] = texinfo
 end
 
+local vertnormals = {}
+local buf = NikNaks.BitBuffer(construct:GetLumpString(LUMP_VERTNORMALS))
+for i = 0, (buf._len / 12) - 1 do
+    vertnormals[i] = buf:ReadVector()
+end
+
+local vertnormalindices = {}
+local buf = NikNaks.BitBuffer(construct:GetLumpString(LUMP_VERTNORMALINDICES))
+for i = 0, (buf._len / 2) - 1 do
+    vertnormalindices[i] = buf:ReadUShort()
+end
 
 local dispinfos = {}
 local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_DISPINFO ) )
@@ -395,6 +408,8 @@ for k, face in pairs(faces) do
     local firstEdgeIndex = face.firstedge
     local numEdges = face.numedges
 
+    local plane = planes[face.planenum]
+
     local texinfo = texinfos[face.texinfo]
     local texdata = texinfo.texdata
 
@@ -408,6 +423,14 @@ for k, face in pairs(faces) do
     if texinfo.texdata.name == "GM_CONSTRUCT/COLOR_ROOM" then
         goto _continue
     end
+
+    local s = texinfo.textureVecs[0]
+    local t = texinfo.textureVecs[1]
+
+    local sVector = Vector(s.x, s.y, s.z)
+    local tVector = Vector(t.x, t.y, t.z)
+    local surfaceTangent = sVector:Cross(tVector)
+    local negateTangentS = plane.normal:Dot(surfaceTangent) > 0.0
 
     local vertexInfos = {}
     local primitive = MATERIAL_POLYGON
@@ -442,13 +465,21 @@ for k, face in pairs(faces) do
         local displacementVerts = buildDisplacement(disp, corners)
 
         -- texture coords
-        for _, vertex in pairs(displacementVerts) do
-            local s = texinfo.textureVecs[0]
-            local t = texinfo.textureVecs[1]
-            local u = vertex.pos.x * s.x + vertex.pos.y * s.y + vertex.pos.z * s.z + s.offset
-            local v = vertex.pos.x * t.x + vertex.pos.y * t.y + vertex.pos.z * t.z + t.offset
+        for dispVertIndexOffset, vertex in pairs(displacementVerts) do
+            local u = vertex.pos:Dot(sVector) + s.offset
+            local v = vertex.pos:Dot(tVector) + t.offset
             vertex.u = u / texdata.width
             vertex.v = v / texdata.height
+
+            -- VERIFY: Is this the correct way to index the vertnormalindices lump?
+            -- local vertNormal = vertnormals[vertnormalindices[disp.DispVertStart + dispVertIndexOffset]]
+            -- local tangentS = vertNormal:Cross(tVector)
+            -- tangentS:Normalize()
+            -- local tangentT = tangentS:Cross(vertNormal)
+            -- tangentT:Normalize()
+            -- if negateTangentS then
+            --     tangentS = tangentS * -1
+            -- end
         end
 
         for y = 0, disp.sideLength - 2 do
@@ -475,25 +506,30 @@ for k, face in pairs(faces) do
             vertexInfo.pos = vertex
 
             -- $basetexture coordinates
-            local s = texinfo.textureVecs[0]
-            local t = texinfo.textureVecs[1]
-            local u = vertex.x * s.x + vertex.y * s.y + vertex.z * s.z + s.offset
-            local v = vertex.x * t.x + vertex.y * t.y + vertex.z * t.z + t.offset
-            u = u / texdata.width
-            v = v / texdata.height
+            local u = vertex:Dot(sVector) + s.offset
+            local v = vertex:Dot(tVector) + t.offset
+            vertexInfo.u = u / texdata.width
+            vertexInfo.v = v / texdata.height
 
-            vertexInfo.u = u
-            vertexInfo.v = v
+            if bit.band( texinfo.flags, SURFDRAW_TANGENTSPACE ) then
+                -- VERIFY: Is this the correct way to index the vertnormalindices lump?
+                local vertNormal = vertnormals[vertnormalindices[vertIndex]]
+                local tangentS = vertNormal:Cross(tVector)
+                tangentS:Normalize()
+                local tangentT = tangentS:Cross(vertNormal)
+                tangentT:Normalize()
+                if negateTangentS then
+                    tangentS = tangentS * -1
+                end
+
+                vertexInfo.tangentS = tangentS
+                vertexInfo.tangentT = tangentT
+            end
 
             -- -- lightmap coordinates
             -- mesh.TexCoord( 1, 0, 0 )
 
-            -- local plane = planes[face.planenum]
-            -- mesh.Normal( plane.normal )
-
-            if bit.band( texinfo.flags, SURFDRAW_TANGENTSPACE ) then
-
-            end
+            vertexInfo.normal = plane.normal
 
             table.insert(vertexInfos, vertexInfo)
         end
@@ -517,6 +553,11 @@ for k, face in pairs(faces) do
 
                 if vertexInfo.normal then
                     mesh.Normal(vertexInfo.normal)
+                end
+
+                if vertexInfo.tangentS and vertexInfo.tangentT then
+                    mesh.TangentS(vertexInfo.tangentS)
+                    mesh.TangentT(vertexInfo.tangentT)
                 end
 
                 if vertexInfo.color then
@@ -559,19 +600,19 @@ end
 
 if SERVER then
 
-    hook.Add( "InitPostEntity", "DynamicMapLoadPostInit", function()
-        -- physics
-        g_worldspawnPhysics = g_worldspawnPhysics
-
-        if IsValid( g_worldspawnPhysics ) then
-            g_worldspawnPhysics:Remove()
+    _G.worldspawnPhysics = _G.worldspawnPhysics
+    local function RecreateWorldCollision()
+        if IsValid(_G.worldspawnPhysics) then
+            _G.worldspawnPhysics:Remove()
         end
 
-        local vws = ents.Create( "virtual_worldspawn" )
-        vws:SetPos( Vector( 0, 0, 0 ) )
-        vws:Spawn()
-        g_worldspawnPhysics = vws
-    end )
+        _G.worldspawnPhysics = ents.Create("virtual_worldspawn")
+        _G.worldspawnPhysics:SetPos(Vector(0, 0, 0))
+        _G.worldspawnPhysics:Spawn()
+    end
+
+    hook.Add( "InitPostEntity", "DynamicMapRecreateWorldCollision", RecreateWorldCollision )
+    hook.Add( "OnReloaded", "DynamicMapRecreateWorldCollision", RecreateWorldCollision )
 
 end
 
