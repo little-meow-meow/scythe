@@ -148,18 +148,18 @@ for i = 0, (buf._len / 32) - 1 do
    texdatas[i] = texdata
 end
 
-local seen = {}
-for _, texdata in pairs(texdatas) do
-    local name = texdata.name
+-- local seen = {}
+-- for _, texdata in pairs(texdatas) do
+--     local name = texdata.name
 
-    -- if name:StartsWith("gm_construct") or name:StartsWith("maps/gm_construct") then continue end
-    if seen[name] then goto _continue end
+--     -- if name:StartsWith("gm_construct") or name:StartsWith("maps/gm_construct") then continue end
+--     if seen[name] then goto _continue end
 
-    seen[name] = true
-    print(name)
+--     seen[name] = true
+--     print(name)
 
-    ::_continue::
-end
+--     ::_continue::
+-- end
 
 local SURF_LIGHT        = 0x0001
 local SURF_SKY2D        = 0x0002
@@ -390,20 +390,26 @@ end
 
 if SERVER then return end
 
-local ZipFile = require("lib.zip")
-local zip = ZipFile.fromString(construct:GetLumpString(LUMP_PAKFILE))
+local gmaPath = "dyncache/"
+gmaPath = gmaPath .. string.GetFileFromFilename(mapName)
+gmaPath = string.StripExtension(gmaPath) .. ".gma"
+gmaPath = string.lower(gmaPath)
+if not file.Exists(gmaPath, "DATA") then
+    local ZipFile = require("lib.zip")
+    local zip = ZipFile.fromString(construct:GetLumpString(LUMP_PAKFILE))
 
--- dump pak files to data folder
-local PREFIX = "dyncache/"
-for index, name in ipairs(zip:getFileNames()) do
-    -- print("Writing unpakked file", name)
+    local GMABuilder = require("lib.gma_builder")
+    local gmaBuilder = GMABuilder.new()
+    gmaBuilder.name = "dyncache: " .. mapName
 
-    local path = PREFIX .. name
-    if file.Exists(path, "DATA") then
-        goto _continue
+    for index, name in ipairs(zip:getFileNames()) do
+        if gmaBuilder:isFileNameAllowed(name) then
+            print("Compiling", name)
+            gmaBuilder:addFile(name, zip:readFile(index))
+        end
     end
 
-    file.Write(path, zip:readFile(index))
-
-    ::_continue::
+    file.Write(gmaPath, gmaBuilder:build())
 end
+
+game.MountGMA("data/" .. gmaPath)
