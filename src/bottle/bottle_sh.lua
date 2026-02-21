@@ -223,29 +223,6 @@ for i = 0, (buf._len / 72) - 1 do
     texinfos[i] = texinfo
 end
 
--- slow / crash
--- local MAX_STRING_SLICE = 8000
--- local function DumpStringHex( str )
---     local out = ""
-
---     local index = 1
---     repeat
---         local chars = { string.byte( str, index, index - 1 + MAX_STRING_SLICE ) }
-
---         -- for _, char in pairs( chars ) do
---         --     out = out .. bit.tohex( char, 2 )
---         -- end
-
---         index = index + MAX_STRING_SLICE
---     until index > #str
-
---     -- for _, char in pairs( { string.byte( str, 1, #str ) } ) do
---     --     out = out .. bit.tohex( char, 2 )
---     -- end
---     return out
--- end
-
--- local s = construct:GetLumpString( LUMP_PAKFILE )
 
 local dispinfos = {}
 local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_DISPINFO ) )
@@ -297,8 +274,6 @@ local function buildDisplacement(dispinfo, corners)
         linearInterpolateVector(referenceVector0, corners[0], corners[1], ratioY)
         linearInterpolateVector(referenceVector1, corners[3], corners[2], ratioY)
 
-        -- print(referenceVector0, referenceVector1)
-
         for x = 0, dispinfo.sideLength - 1 do
             local ratioX = x / (dispinfo.sideLength - 1)
 
@@ -309,7 +284,6 @@ local function buildDisplacement(dispinfo, corners)
 
             vertex.pos = Vector()
             linearInterpolateVector(vertex.pos, referenceVector0, referenceVector1, ratioX)
-            -- print(referenceVector1.x, referenceVector0.x, ratioX)
 
             vertex.pos.x = vertex.pos.x + dispVert.vec.x * dispVert.dist
             vertex.pos.y = vertex.pos.y + dispVert.vec.y * dispVert.dist
@@ -317,8 +291,6 @@ local function buildDisplacement(dispinfo, corners)
 
             vertex.normal = Vector()
             vertex.color = Color(0xFF, 0xFF, 0xFF, dispVert.alpha)
-
-            -- debugoverlay.Text(vertex.pos, string.format("%u, %u", y, x), 600)
 
             vertices[y * dispinfo.sideLength + x] = vertex
         end
@@ -436,25 +408,6 @@ for k, face in pairs(faces) do
     if texinfo.texdata.name == "GM_CONSTRUCT/COLOR_ROOM" then
         goto _continue
     end
-
-    -- if (bit.band( texinfo.flags, SURF_HINT + SURF_SKIP + SURF_NODRAW ) ) == 0 then
-    --     -- calculate physics mesh for virtual worldspawn entity
-    --     local faceVertices = {}
-    --     for i = 0, numEdges - 1 do
-    --         local vertIndex = vertindices[firstEdgeIndex + i]
-    --         local vertex = vertices[vertIndex]
-    --         faceVertices[i] = vertex
-    --     end
-
-    --     -- fan triangles
-    --     -- visual reference: https://wiki.facepunch.com/gmod/surface.DrawPoly
-    --     -- for N elements, start at the second element and end at the penultimate element
-    --     for i = 1, #faceVertices - 1 do
-    --         table.insert( physicsSoup, { pos = faceVertices[0] } )
-    --         table.insert( physicsSoup, { pos = faceVertices[i] } )
-    --         table.insert( physicsSoup, { pos = faceVertices[i+1] } )
-    --     end
-    -- end
 
     local vertexInfos = {}
     local primitive = MATERIAL_POLYGON
@@ -581,7 +534,6 @@ for k, face in pairs(faces) do
         local meshEntry = {
             mesh = _mesh,
             material = material,
-            isDisplacement = face.dispinfo >= 0
         }
         table.insert(meshes, meshEntry)
     end
