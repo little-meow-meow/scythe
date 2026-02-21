@@ -175,6 +175,14 @@ local SURF_BUMPLIGHT    = 0x0800
 local SURF_NOSHADOWS    = 0x1000
 local SURF_NODECALS     = 0x2000
 
+local SURFDRAW_NOLIGHT      = 0x0001
+local SURFDRAW_NODE         = 0x0002
+local SURFDRAW_SKY          = 0x0004
+local SURFDRAW_TRANS        = 0x0008
+local SURFDRAW_PLANEBACK    = 0x0010
+local SURFDRAW_DYNAMIC      = 0x0020
+local SURFDRAW_TANGENTSPACE = 0x0040
+
 local texinfos = {}
 local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_TEXINFO ) )
 for i = 0, (buf._len / 72) - 1 do
@@ -239,15 +247,172 @@ end
 
 -- local s = construct:GetLumpString( LUMP_PAKFILE )
 
--- local dispinfos = {}
--- local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_DISPINFO ) )
--- for i = 0, (buf._len / 56) - 1 do
---     dispinfos[i] = {
---         planenum = buf:ReadUShort(),
+local dispinfos = {}
+local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_DISPINFO ) )
+for i = 0, (buf._len / 176) - 1 do
+    local info = {
+        startPosition = buf:ReadVector(),
+        DispVertStart = buf:ReadLong(),
+        DispTriStart = buf:ReadLong(),
+        power = buf:ReadLong(),
+        minTess = buf:ReadLong(),
+        smoothingAngle = buf:ReadFloat(),
+        contents = buf:ReadLong(),
+        MapFace = buf:ReadUShort(),
+        LightmapAlphaStart = buf:ReadLong(),
+        LightmapSamplePositionStart = buf:ReadLong(),
+        -- EdgeNeighbors[4]
+        -- ConerNeighbors[4]
+        -- AllowedVerts[10]
+    }
+    buf:Skip(130 * 8) -- unimplemented members
+    info.sideLength = bit.lshift(1, info.power) + 1
+    info.vertexCount = math.pow(info.sideLength, 2)
+    dispinfos[i] = info
+end
 
---     }
--- end
+local dispverts = {}
+local buf = NikNaks.BitBuffer(construct:GetLumpString(LUMP_DISP_VERTS))
+for i = 0, (buf._len / 20) - 1 do
+    dispverts[i] = {
+        vec = buf:ReadVector(),
+        dist = buf:ReadFloat(),
+        alpha = buf:ReadFloat(),
+    }
+end
 
+local function linearInterpolateVector(vector, fromVector, toVector, ratio)
+    vector.x = Lerp(ratio, fromVector.x, toVector.x)
+    vector.y = Lerp(ratio, fromVector.y, toVector.y)
+    vector.z = Lerp(ratio, fromVector.z, toVector.z)
+end
+
+local function buildDisplacement(dispinfo, corners)
+    local referenceVector0 = Vector()
+    local referenceVector1 = Vector()
+
+    local vertices = {}
+    for y = 0, dispinfo.sideLength - 1 do
+        local ratioY = y / (dispinfo.sideLength - 1)
+        linearInterpolateVector(referenceVector0, corners[0], corners[1], ratioY)
+        linearInterpolateVector(referenceVector1, corners[3], corners[2], ratioY)
+
+        -- print(referenceVector0, referenceVector1)
+
+        for x = 0, dispinfo.sideLength - 1 do
+            local ratioX = x / (dispinfo.sideLength - 1)
+
+            local vertIndex = dispinfo.DispVertStart + (y * dispinfo.sideLength) + x
+            local dispVert = dispverts[vertIndex]
+
+            local vertex = {}
+
+            vertex.pos = Vector()
+            linearInterpolateVector(vertex.pos, referenceVector0, referenceVector1, ratioX)
+            -- print(referenceVector1.x, referenceVector0.x, ratioX)
+
+            vertex.pos.x = vertex.pos.x + dispVert.vec.x * dispVert.dist
+            vertex.pos.y = vertex.pos.y + dispVert.vec.y * dispVert.dist
+            vertex.pos.z = vertex.pos.z + dispVert.vec.z * dispVert.dist
+
+            vertex.normal = Vector()
+            vertex.color = Color(0xFF, 0xFF, 0xFF, dispVert.alpha)
+
+            -- debugoverlay.Text(vertex.pos, string.format("%u, %u", y, x), 600)
+
+            vertices[y * dispinfo.sideLength + x] = vertex
+        end
+    end
+
+    local v0 = nil
+    local v1 = nil
+    local w = dispinfo.sideLength
+    for y = 0, w - 1 do
+        for x = 0, w - 1 do
+            local v = vertices[y * w + x]
+            local x0 = x - 1
+            local x1 = x
+            local x2 = x + 1
+            local y0 = y - 1
+            local y1 = y
+            local y2 = y + 1
+
+            local count = 0
+
+            -- top left
+            if x0 >= 0 and y0 >= 0 then
+                v0 = vertices[y1*w+x0].pos - vertices[y0*w+x0].pos
+                v1 = vertices[y0*w+x1].pos - vertices[y0*w+x0].pos
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                v0 = vertices[y1*w+x0].pos - vertices[y0*w+x1].pos
+                v1 = vertices[y1*w+x1].pos - vertices[y0*w+x1].pos
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                count = count + 2
+            end
+
+            -- top right
+            if x2 < w and y0 >= 0 then
+                v0 = vertices[y1*w+x1].pos - vertices[y0*w+x1].pos
+                v1 = vertices[y0*w+x2].pos - vertices[y0*w+x1].pos
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                v0 = vertices[y1*w+x1].pos - vertices[y0*w+x2].pos
+                v1 = vertices[y1*w+x2].pos - vertices[y0*w+x2].pos
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                count = count + 2
+            end
+
+            -- bottom left
+            if x0 >= 0 and y2 < w then
+                v0 = vertices[y2*w+x0].pos - vertices[y1*w+x0].pos
+                v1 = vertices[y1*w+x1].pos - vertices[y1*w+x0].pos
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                v0 = vertices[y2*w+x0].pos - vertices[y1*w+x1].pos
+                v1 = vertices[y2*w+x1].pos - vertices[y1*w+x1].pos
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                count = count + 2
+            end
+
+            -- bottom right
+            if x2 < w and y2 < w then
+                v0 = vertices[y2*w+x1].pos - vertices[y1*w+x1].pos
+                v1 = vertices[y1*w+x2].pos - vertices[y1*w+x1].pos
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                v0 = vertices[y2*w+x1].pos - vertices[y1*w+x2].pos
+                v1 = vertices[y2*w+x2].pos - vertices[y1*w+x2].pos
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                count = count + 2
+            end
+
+            v.normal = v.normal * (1 / count)
+        end
+    end
+
+    return vertices
+end
 
 
 meshes = {}
@@ -258,16 +423,10 @@ for k, face in pairs(faces) do
     local firstEdgeIndex = face.firstedge
     local numEdges = face.numedges
 
-    -- if face.numPrims > 0 or face.dispinfo >=0 then
-    --     continue
-    -- end
-
-    if face.dispinfo >= 0 then goto _continue end
-
     local texinfo = texinfos[face.texinfo]
     local texdata = texinfo.texdata
 
-    if bit.band( texinfo.flags, SURF_SKY2D + SURF_SKY + SURF_NODRAW + SURF_HINT ) > 0 then
+    if bit.band( texinfo.flags, SURF_SKY2D + SURF_SKY ) > 0 then
         goto _continue
     end
 
@@ -278,23 +437,116 @@ for k, face in pairs(faces) do
         goto _continue
     end
 
-    if (bit.band( texinfo.flags, SURF_HINT + SURF_SKIP + SURF_NODRAW ) ) == 0 then
-        -- calculate physics mesh for virtual worldspawn entity
-        local faceVertices = {}
-        for i = 0, numEdges - 1 do
-            local vertIndex = vertindices[firstEdgeIndex + i]
-            local vertex = vertices[vertIndex]
-            faceVertices[i] = vertex
+    -- if (bit.band( texinfo.flags, SURF_HINT + SURF_SKIP + SURF_NODRAW ) ) == 0 then
+    --     -- calculate physics mesh for virtual worldspawn entity
+    --     local faceVertices = {}
+    --     for i = 0, numEdges - 1 do
+    --         local vertIndex = vertindices[firstEdgeIndex + i]
+    --         local vertex = vertices[vertIndex]
+    --         faceVertices[i] = vertex
+    --     end
+
+    --     -- fan triangles
+    --     -- visual reference: https://wiki.facepunch.com/gmod/surface.DrawPoly
+    --     -- for N elements, start at the second element and end at the penultimate element
+    --     for i = 1, #faceVertices - 1 do
+    --         table.insert( physicsSoup, { pos = faceVertices[0] } )
+    --         table.insert( physicsSoup, { pos = faceVertices[i] } )
+    --         table.insert( physicsSoup, { pos = faceVertices[i+1] } )
+    --     end
+    -- end
+
+    local vertexInfos = {}
+    local primitive = MATERIAL_POLYGON
+    local primitiveCount = 0
+    if face.dispinfo >= 0 then
+        -- displacement-type surface
+        local disp = dispinfos[face.dispinfo]
+
+        local corners = {}
+        local startDist = math.huge
+        local startCorner = -1
+        for i = 0, 3 do
+            local corner = vertices[vertindices[firstEdgeIndex + i]]
+            corners[i] = corner
+            local dist = corner:DistToSqr(disp.startPosition)
+            if dist < startDist then
+                startCorner = i
+                startDist = dist
+            end
         end
 
-        -- fan triangles
-        -- visual reference: https://wiki.facepunch.com/gmod/surface.DrawPoly
-        -- for N elements, start at the second element and end at the penultimate element
-        for i = 1, #faceVertices - 1 do
-            table.insert( physicsSoup, { pos = faceVertices[0] } )
-            table.insert( physicsSoup, { pos = faceVertices[i] } )
-            table.insert( physicsSoup, { pos = faceVertices[i+1] } )
+        -- rotate corners so start corner is first
+        if startCorner ~= 0 then
+            local rotatedCorners = {}
+            for i = 0, 3 do
+                local index = (i + startCorner) % 4
+                rotatedCorners[i] = corners[index]
+            end
+            corners = rotatedCorners
         end
+
+        local displacementVerts = buildDisplacement(disp, corners)
+
+        -- texture coords
+        for _, vertex in pairs(displacementVerts) do
+            local s = texinfo.textureVecs[0]
+            local t = texinfo.textureVecs[1]
+            local u = vertex.pos.x * s.x + vertex.pos.y * s.y + vertex.pos.z * s.z + s.offset
+            local v = vertex.pos.x * t.x + vertex.pos.y * t.y + vertex.pos.z * t.z + t.offset
+            vertex.u = u / texdata.width
+            vertex.v = v / texdata.height
+        end
+
+        for y = 0, disp.sideLength - 2 do
+            for x = 0, disp.sideLength - 2 do
+                local base = y * disp.sideLength + x
+                table.insert(vertexInfos, displacementVerts[base])
+                table.insert(vertexInfos, displacementVerts[base + disp.sideLength])
+                table.insert(vertexInfos, displacementVerts[base + disp.sideLength + 1])
+                table.insert(vertexInfos, displacementVerts[base])
+                table.insert(vertexInfos, displacementVerts[base + disp.sideLength + 1])
+                table.insert(vertexInfos, displacementVerts[base + 1])
+            end
+        end
+
+        primitive = MATERIAL_TRIANGLES
+        primitiveCount = #vertexInfos / 3
+    else
+        -- brush-type surface
+        for i = 0, numEdges - 1 do
+            local vertexInfo = {}
+
+            local vertIndex = vertindices[firstEdgeIndex + i]
+            local vertex = vertices[vertIndex]
+            vertexInfo.pos = vertex
+
+            -- $basetexture coordinates
+            local s = texinfo.textureVecs[0]
+            local t = texinfo.textureVecs[1]
+            local u = vertex.x * s.x + vertex.y * s.y + vertex.z * s.z + s.offset
+            local v = vertex.x * t.x + vertex.y * t.y + vertex.z * t.z + t.offset
+            u = u / texdata.width
+            v = v / texdata.height
+
+            vertexInfo.u = u
+            vertexInfo.v = v
+
+            -- -- lightmap coordinates
+            -- mesh.TexCoord( 1, 0, 0 )
+
+            -- local plane = planes[face.planenum]
+            -- mesh.Normal( plane.normal )
+
+            if bit.band( texinfo.flags, SURFDRAW_TANGENTSPACE ) then
+
+            end
+
+            table.insert(vertexInfos, vertexInfo)
+        end
+
+        primitive = MATERIAL_POLYGON
+        primitiveCount = numEdges
     end
 
     if CLIENT then
@@ -302,29 +554,25 @@ for k, face in pairs(faces) do
         local material = Material( texinfo.texdata.name )
 
         local _mesh = Mesh( material )
-        mesh.Begin( _mesh, MATERIAL_POLYGON, numEdges )
-            for i = 0, numEdges - 1 do
-                local vertIndex = vertindices[firstEdgeIndex + i]
-                local vertex = vertices[vertIndex]
+        mesh.Begin( _mesh, primitive, primitiveCount )
+            for _, vertexInfo in ipairs(vertexInfos) do
+                mesh.Position(vertexInfo.pos)
 
-                mesh.Position( vertex )
+                if vertexInfo.u and vertexInfo.v then
+                    mesh.TexCoord( 0, vertexInfo.u, vertexInfo.v )
+                end
 
-                -- $basetexture coordinates
-                local s = texinfo.textureVecs[0]
-                local t = texinfo.textureVecs[1]
-                local u = vertex.x * s.x + vertex.y * s.y + vertex.z * s.z + s.offset
-                local v = vertex.x * t.x + vertex.y * t.y + vertex.z * t.z + t.offset
-                u = u / texdata.width
-                v = v / texdata.height
-                mesh.TexCoord( 0, u, v )
+                if vertexInfo.normal then
+                    mesh.Normal(vertexInfo.normal)
+                end
 
-                -- print("uv", u, v)
-
-                -- -- lightmap coordinates
-                -- mesh.TexCoord( 1, 0, 0 )
-
-                -- local plane = planes[face.planenum]
-                -- mesh.Normal( plane.normal )
+                if vertexInfo.color then
+                    local r = vertexInfo.color.r
+                    local g = vertexInfo.color.g
+                    local b = vertexInfo.color.b
+                    local a = vertexInfo.color.a
+                    mesh.Color(r, g, b, a)
+                end
 
                 mesh.AdvanceVertex()
             end
@@ -333,13 +581,10 @@ for k, face in pairs(faces) do
         local meshEntry = {
             mesh = _mesh,
             material = material,
+            isDisplacement = face.dispinfo >= 0
         }
         table.insert(meshes, meshEntry)
     end
-
-    -- if k > 4000 then
-    --     break
-    -- end
 
     ::_continue::
 end
@@ -349,8 +594,6 @@ if CLIENT then
 
     local matWireframe = Material( "editor/wireframe" ) -- The material (a wireframe)
     hook.Add( "PostDrawOpaqueRenderables", "IMeshTest", function()
-    -- mush:Draw() -- Draw the mesh
-
         for _, meshEntry in pairs(meshes) do
             render.SetMaterial( meshEntry.material )
             -- render.SetMaterial( matWireframe )
@@ -373,17 +616,10 @@ if SERVER then
         end
 
         local vws = ents.Create( "virtual_worldspawn" )
-        -- vws:SetPos( Vector( -2000, -1000, 0 ) )
         vws:SetPos( Vector( 0, 0, 0 ) )
         vws:Spawn()
         g_worldspawnPhysics = vws
     end )
-
-    -- vws:BuildFromTriangles( physicsSoup )
-
-    -- hook.Add( "SetupPlayerVisibility", "AddRTCamera", function( ply, viewEntity )
-    --     AddOriginToPVS( Vector( -1700, -561, 100 ) )
-    -- end )
 
 end
 
