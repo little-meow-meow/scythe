@@ -1,5 +1,5 @@
 local record BitBuffer
-    metamethod __call: function(_: BitBuffer, string, littleEndian?: boolean): BitBuffer
+    metamethod __call: function(_: BitBuffer, data?: string, littleEndian?: boolean): BitBuffer
 
     FromNet: function(bits: number): BitBuffer
     ToNet: function(self): number
@@ -16,7 +16,10 @@ local record BitBuffer
     SetLittleEndian: function(self, boolean): self
     SetBigEndian: function(self, boolean): self
 
-    Read: function(self, count: number): string
+    Read: function(self, count?: number): string
+    Write: function(self, value: string): self
+    ReadData: function(self, count?: number): string
+    WriteData: function(self, value: string): self
 
     WriteUInt: function(self, value: number, bits: number): self
     ReadUInt: function(self, bits: number): number
