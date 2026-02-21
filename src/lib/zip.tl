@@ -227,12 +227,12 @@ function ZipFile:readFile(index: integer): string
     return self._buffer:Read(fileEntry.compressedSize)
 end
 
-local pakConstruct = require("test.construct")
-print("loading pak zip")
-local zip = ZipFile.fromString(pakConstruct)
-for _, name in ipairs(zip:getFileNames()) do
-    print(name)
-end
+-- local pakConstruct = require("test.construct")
+-- print("loading pak zip")
+-- local zip = ZipFile.fromString(pakConstruct)
+-- for _, name in ipairs(zip:getFileNames()) do
+--     print(name)
+-- end
 
 -- local f = zip:readFile(1)
 -- print(f)
