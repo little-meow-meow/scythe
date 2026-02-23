@@ -3,7 +3,7 @@
 --- https://archive.ph/5y0w0
 --- https://en.wikipedia.org/wiki/ZIP_(file_format)
 
-local BitBuffer = require("lib.bitbuffer_sh")
+local ByteReader = require("lib.byte_reader")
 local Bitflag = require("lib.bitflag")
 
 ---------------------------------------
@@ -11,45 +11,45 @@ local Bitflag = require("lib.bitflag")
 local record FileEntry
     IDENTIFIER: string
 
-    minimumVersion: number
+    minimumVersion: integer
     bitflag: Bitflag<any>
     compressionMethod: number
     lastModificationTime: number
     lastModificationDate: number
-    uncompressedChecksum: number
-    compressedSize: number
-    uncompressedSize: number
+    uncompressedChecksum: integer
+    compressedSize: integer
+    uncompressedSize: integer
     fileName: string
     extra: string
 
-    read: function(buffer: BitBuffer): FileEntry
+    read: function(buffer: ByteReader): FileEntry
 end
 
 FileEntry.IDENTIFIER = "\x50\x4B\x03\x04"
 
-function FileEntry.read(buffer: BitBuffer): FileEntry
+function FileEntry.read(buffer: ByteReader): FileEntry
     local this: FileEntry = {}
 
-    local magic = buffer:Read(4)
+    local magic = buffer:readChars(4)
     if magic ~= FileEntry.IDENTIFIER then
         error("invalid identifier: " .. magic)
     end
 
-    this.minimumVersion = buffer:ReadUShort()
+    this.minimumVersion = buffer:readU16LE()
     this.bitflag = Bitflag.new()
-    this.bitflag:set(buffer:ReadUShort())
-    this.compressionMethod = buffer:ReadUShort()
-    this.lastModificationTime = buffer:ReadUShort()
-    this.lastModificationDate = buffer:ReadUShort()
-    this.uncompressedChecksum = buffer:ReadLong()
-    this.compressedSize = buffer:ReadULong()
-    this.uncompressedSize = buffer:ReadULong()
+    this.bitflag:set(buffer:readU16LE())
+    this.compressionMethod = buffer:readU16LE()
+    this.lastModificationTime = buffer:readU16LE()
+    this.lastModificationDate = buffer:readU16LE()
+    this.uncompressedChecksum = buffer:readS32LE()
+    this.compressedSize = buffer:readU32LE()
+    this.uncompressedSize = buffer:readU32LE()
 
-    local fileNameLength = buffer:ReadUShort()
-    local extraLength = buffer:ReadUShort()
+    local fileNameLength = buffer:readU16LE()
+    local extraLength = buffer:readU16LE()
 
-    this.fileName = buffer:Read(fileNameLength)
-    this.extra = buffer:Read(extraLength)
+    this.fileName = buffer:readChars(fileNameLength)
+    this.extra = buffer:readChars(extraLength)
 
     return setmetatable(this, {__index = FileEntry})
 end
@@ -59,59 +59,60 @@ end
 local record CentralDirectoryRecord
     IDENTIFIER: string
 
-    versionMadeBy: number
-    minimumVersionToExtract: number
+    versionMadeBy: integer
+    minimumVersionToExtract: integer
     bitflag: Bitflag<any>
     compressionMethod: number
     fileLastModificationTime: number
     fileLastModificationDate: number
-    uncompressedChecksum: number
-    compressedSize: number
-    uncompressedSize: number
-    fileStartDisk: number
+    uncompressedChecksum: integer
+    compressedSize: integer
+    uncompressedSize: integer
+    fileStartDisk: integer
     internalFileAttributes: number
     externalFileAttributes: number
-    relativeOffsetStart: number
+    relativeOffsetStart: integer
     fileName: string
     extra: string
     comment: string
 
-    read: function(buffer: BitBuffer): CentralDirectoryRecord
+    read: function(buffer: ByteReader): CentralDirectoryRecord
 end
 
 CentralDirectoryRecord.IDENTIFIER = "\x50\x4B\x01\x02"
 
-function CentralDirectoryRecord.read(buffer: BitBuffer): CentralDirectoryRecord
+function CentralDirectoryRecord.read(buffer: ByteReader): CentralDirectoryRecord
     local this: CentralDirectoryRecord = {}
 
-    local magic = buffer:Read(4)
+    local magic = buffer:readChars(4)
     if magic ~= CentralDirectoryRecord.IDENTIFIER then
+        print(buffer._index)
         error("invalid identifier: " .. magic)
     end
 
-    this.versionMadeBy = buffer:ReadUShort()
-    this.minimumVersionToExtract = buffer:ReadUShort()
+    this.versionMadeBy = buffer:readU16LE()
+    this.minimumVersionToExtract = buffer:readU16LE()
     this.bitflag = Bitflag.new()
-    this.bitflag:set(buffer:ReadUShort())
-    this.compressionMethod = buffer:ReadUShort()
-    this.fileLastModificationTime = buffer:ReadUShort()
-    this.fileLastModificationDate = buffer:ReadUShort()
-    this.uncompressedChecksum = buffer:ReadLong()
-    this.compressedSize = buffer:ReadLong()
-    this.uncompressedSize = buffer:ReadLong()
+    this.bitflag:set(buffer:readU16LE())
+    this.compressionMethod = buffer:readU16LE()
+    this.fileLastModificationTime = buffer:readU16LE()
+    this.fileLastModificationDate = buffer:readU16LE()
+    this.uncompressedChecksum = buffer:readS32LE()
+    this.compressedSize = buffer:readS32LE()
+    this.uncompressedSize = buffer:readS32LE()
 
-    local fileNameLength = buffer:ReadUShort()
-    local extraLength = buffer:ReadUShort()
-    local commentLength = buffer:ReadUShort()
+    local fileNameLength = buffer:readU16LE()
+    local extraLength = buffer:readU16LE()
+    local commentLength = buffer:readU16LE()
 
-    this.fileStartDisk = buffer:ReadUShort()
-    this.internalFileAttributes = buffer:ReadUShort()
-    this.externalFileAttributes = buffer:ReadULong()
-    this.relativeOffsetStart = buffer:ReadULong()
+    this.fileStartDisk = buffer:readU16LE()
+    this.internalFileAttributes = buffer:readU16LE()
+    this.externalFileAttributes = buffer:readU32LE()
+    this.relativeOffsetStart = buffer:readU32LE()
 
-    this.fileName = buffer:Read(fileNameLength)
-    this.extra = buffer:Read(extraLength)
-    this.comment = buffer:Read(commentLength)
+    this.fileName = buffer:readChars(fileNameLength)
+    this.extra = buffer:readChars(extraLength)
+    this.comment = buffer:readChars(commentLength)
 
     return setmetatable(this, {__index = CentralDirectoryRecord})
 end
@@ -121,36 +122,36 @@ end
 local record EndOfCentralDirectoryRecord
     IDENTIFIER: string
 
-    _diskNumber: number
-    _centralDirectoryStartDisk: number
-    _centralDirectoryRecordsOnDisk: number
-    _totalCentralDirectoryRecords: number
-    _centralDirectorySize: number
-    _centralDirectoryOffset: number
+    _diskNumber: integer
+    _centralDirectoryStartDisk: integer
+    _centralDirectoryRecordsOnDisk: integer
+    _totalCentralDirectoryRecords: integer
+    _centralDirectorySize: integer
+    _centralDirectoryOffset: integer
     comment: string
 
-    read: function(buffer: BitBuffer): EndOfCentralDirectoryRecord
+    read: function(buffer: ByteReader): EndOfCentralDirectoryRecord
 end
 
 EndOfCentralDirectoryRecord.IDENTIFIER = "\x50\x4B\x05\x06"
 
-function EndOfCentralDirectoryRecord.read(buffer: BitBuffer): EndOfCentralDirectoryRecord
+function EndOfCentralDirectoryRecord.read(buffer: ByteReader): EndOfCentralDirectoryRecord
     local this: EndOfCentralDirectoryRecord = {}
 
-    local magic = buffer:Read(4)
+    local magic = buffer:readChars(4)
     if magic ~= EndOfCentralDirectoryRecord.IDENTIFIER then
         error("invalid identifier: " .. magic)
     end
 
-    this._diskNumber = buffer:ReadShort()
-    this._centralDirectoryStartDisk = buffer:ReadShort()
-    this._centralDirectoryRecordsOnDisk = buffer:ReadShort()
+    this._diskNumber = buffer:readS16LE()
+    this._centralDirectoryStartDisk = buffer:readS16LE()
+    this._centralDirectoryRecordsOnDisk = buffer:readS16LE()
 
-    this._totalCentralDirectoryRecords = buffer:ReadShort()
-    this._centralDirectorySize = buffer:ReadLong()
-    this._centralDirectoryOffset = buffer:ReadLong()
+    this._totalCentralDirectoryRecords = buffer:readS16LE()
+    this._centralDirectorySize = buffer:readS32LE()
+    this._centralDirectoryOffset = buffer:readS32LE()
 
-    this.comment = buffer:ReadString()
+    this.comment = buffer:readChars(buffer:readU16LE())
 
     return setmetatable(this, {__index = EndOfCentralDirectoryRecord})
 end
@@ -160,7 +161,7 @@ end
 local record ZipFile
     fromString: function(bytes: string): ZipFile
 
-    _buffer: BitBuffer
+    _buffer: ByteReader
     _eocd: EndOfCentralDirectoryRecord
 
     records: {CentralDirectoryRecord}
@@ -168,21 +169,20 @@ end
 
 function ZipFile.fromString(bytes: string): ZipFile
     local this: ZipFile = {}
-    this._buffer = BitBuffer(bytes)
-    this._buffer:SetLittleEndian(true)
+    this._buffer = ByteReader.new(bytes)
 
     -- locate End of Central Directory record
     local MINIMUM_EOCD_SIZE = 22
-    local searchIndex = (#bytes - MINIMUM_EOCD_SIZE) * 8
+    local searchIndex = (#bytes - MINIMUM_EOCD_SIZE)
     repeat
-        this._buffer:Seek(searchIndex)
+        this._buffer:seek(searchIndex)
 
-        if this._buffer:Read(4) == EndOfCentralDirectoryRecord.IDENTIFIER then
-            this._buffer:Skip(-32)
+        if this._buffer:readChars(4) == EndOfCentralDirectoryRecord.IDENTIFIER then
+            this._buffer:skip(-4)
             break
         end
 
-        searchIndex = searchIndex - 8
+        searchIndex = searchIndex - 1
     until searchIndex < 0
 
     if searchIndex < 0 then
@@ -193,10 +193,11 @@ function ZipFile.fromString(bytes: string): ZipFile
 
     -- read central directory records
     local centralDirectoryOffset = this._eocd._centralDirectoryOffset
-    this._buffer:Seek(centralDirectoryOffset * 8)
+    this._buffer:seek(centralDirectoryOffset)
 
     local records = {}
     for _ = 1, this._eocd._totalCentralDirectoryRecords do
+        print(this._buffer._index)
         table.insert(records, CentralDirectoryRecord.read(this._buffer))
     end
     this.records = records
@@ -222,9 +223,9 @@ end
 
 function ZipFile:readFile(index: integer): string
     local fileRecord = self.records[index]
-    self._buffer:Seek(fileRecord.relativeOffsetStart * 8)
+    self._buffer:seek(fileRecord.relativeOffsetStart)
     local fileEntry = FileEntry.read(self._buffer)
-    return self._buffer:Read(fileEntry.compressedSize)
+    return self._buffer:readChars(fileEntry.compressedSize)
 end
 
 -- local pakConstruct = require("test.construct")
