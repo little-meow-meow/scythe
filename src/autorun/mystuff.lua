@@ -4,6 +4,7 @@ AddCSLuaFile("lib/bitflag.lua")
 AddCSLuaFile("lib/floating.lua")
 AddCSLuaFile("lib/zip.lua")
 
+local __require = _G.require
 function _G._compatRequire(path)
     local luaPath = path:Replace(".", "/") .. ".lua"
     local success, ret = pcall(function()
@@ -13,7 +14,7 @@ function _G._compatRequire(path)
     if success then
         return unpack( ret )
     else
-        return require(path)
+        return __require(path)
     end
 end
 
