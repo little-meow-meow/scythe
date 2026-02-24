@@ -1,14 +1,20 @@
 
+require("niknaks")
+
 AddCSLuaFile("lib/bit.lua")
 AddCSLuaFile("lib/bitflag.lua")
 AddCSLuaFile("lib/floating.lua")
 AddCSLuaFile("lib/zip.lua")
 
 local __require = _G.require
+local cache = {}
 function _G._compatRequire(path)
     local luaPath = path:Replace(".", "/") .. ".lua"
     local success, ret = pcall(function()
-        return { include(luaPath) }
+        if not cache[luaPath] then
+           cache[luaPath] = { include(luaPath) }
+        end
+        return cache[luaPath]
     end)
 
     if success then
