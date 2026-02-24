@@ -4751,8 +4751,8 @@ end
 --- * prerelease.
 --- * x86-64.
 -- @return --- The current branch.
-global function BRANCH(): string
-end
+-- global function BRANCH(): string
+-- end
 
 --- Sends the specified Lua code to all connected clients and executes it.
 --- **NOTE**: If you need to use this function more than once, consider using net library.
@@ -5482,8 +5482,8 @@ end
 --- Returns the environment table of either the stack level or the function specified.
 -- @param location --- The object to get the enviroment from. Can also be a number that specifies the function at that stack level: Level 1 is the function calling getfenv. Level 0 is the base Garry's Mod environment (_G).
 -- @return --- The environment.
-global function getfenv(location: function): table
-end
+-- global function getfenv(location: function): table
+-- end
 
 --- Returns an angle that is shared between the server and all clients.
 -- @param index --- The unique index to identify the global value with.
@@ -6505,8 +6505,8 @@ end
 -- @param location --- The function to set the environment for, or a number representing stack level.
 -- @param environment --- Table to be used as the the environment.
 -- @return --- The function passed, otherwise nil.
-global function setfenv(location: function, environment: table): function
-end
+-- global function setfenv(location: function, environment: table): function
+-- end
 
 --- Defines an angle to be automatically networked to clients
 --- **NOTE**: Running this function clientside will only set it clientside for the client it is called on!

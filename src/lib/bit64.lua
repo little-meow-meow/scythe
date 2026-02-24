@@ -1,4 +1,4 @@
-[[
+local _KEEP = [[
     Lua BitOp adapter for 64-bit numbers. Requires LuaJIT.
     Written from scratch, but inspired on bit64.lua by Chessforeva Dev and TsT.
 
@@ -14,7 +14,7 @@
 -- Imports
 -- ==============================================================================================
 
-local bit = require("bit")
+local bit = require("lib.bit").bit
 local band, bor, bxor, bnot = bit.band, bit.bor, bit.bxor, bit.bnot
 local lshift, rshift, arshift = bit.lshift, bit.rshift, bit.arshift
 local bswap, tohex = bit.bswap, bit.tohex
@@ -29,7 +29,7 @@ local function U64_join(hi, lo)
     local rshift, band = rshift, band
     hi = rshift(hi, 1) * 2 + band(hi, 1)
     lo = rshift(lo, 1) * 2 + band(lo, 1)
-    return (hi * 0x100000000ull) + (lo % 0x100000000)
+    return (hi * 0x100000000) + (lo % 0x100000000)
 end
 
 local function U64_split(x)

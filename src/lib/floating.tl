@@ -1,3 +1,4 @@
+(makeRequireCompat or function() end)()
 
 local Bit = require("lib.bit")
 local bit = Bit.bit

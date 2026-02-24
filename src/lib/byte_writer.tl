@@ -1,3 +1,4 @@
+(makeRequireCompat or function() end)()
 
 local Floating = require("lib.floating")
 

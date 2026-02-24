@@ -1,3 +1,4 @@
+(makeRequireCompat or function() end)()
 
 --- https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
 --- https://archive.ph/5y0w0
@@ -30,7 +31,7 @@ FileEntry.IDENTIFIER = "\x50\x4B\x03\x04"
 function FileEntry.read(buffer: ByteReader): FileEntry
     local this: FileEntry = {}
 
-    local magic = buffer:readChars(4)
+    local magic = buffer:read(4)
     if magic ~= FileEntry.IDENTIFIER then
         error("invalid identifier: " .. magic)
     end
@@ -48,8 +49,8 @@ function FileEntry.read(buffer: ByteReader): FileEntry
     local fileNameLength = buffer:readU16LE()
     local extraLength = buffer:readU16LE()
 
-    this.fileName = buffer:readChars(fileNameLength)
-    this.extra = buffer:readChars(extraLength)
+    this.fileName = buffer:read(fileNameLength)
+    this.extra = buffer:read(extraLength)
 
     return setmetatable(this, {__index = FileEntry})
 end
@@ -84,9 +85,8 @@ CentralDirectoryRecord.IDENTIFIER = "\x50\x4B\x01\x02"
 function CentralDirectoryRecord.read(buffer: ByteReader): CentralDirectoryRecord
     local this: CentralDirectoryRecord = {}
 
-    local magic = buffer:readChars(4)
+    local magic = buffer:read(4)
     if magic ~= CentralDirectoryRecord.IDENTIFIER then
-        print(buffer._index)
         error("invalid identifier: " .. magic)
     end
 
@@ -110,9 +110,9 @@ function CentralDirectoryRecord.read(buffer: ByteReader): CentralDirectoryRecord
     this.externalFileAttributes = buffer:readU32LE()
     this.relativeOffsetStart = buffer:readU32LE()
 
-    this.fileName = buffer:readChars(fileNameLength)
-    this.extra = buffer:readChars(extraLength)
-    this.comment = buffer:readChars(commentLength)
+    this.fileName = buffer:read(fileNameLength)
+    this.extra = buffer:read(extraLength)
+    this.comment = buffer:read(commentLength)
 
     return setmetatable(this, {__index = CentralDirectoryRecord})
 end
@@ -138,7 +138,7 @@ EndOfCentralDirectoryRecord.IDENTIFIER = "\x50\x4B\x05\x06"
 function EndOfCentralDirectoryRecord.read(buffer: ByteReader): EndOfCentralDirectoryRecord
     local this: EndOfCentralDirectoryRecord = {}
 
-    local magic = buffer:readChars(4)
+    local magic = buffer:read(4)
     if magic ~= EndOfCentralDirectoryRecord.IDENTIFIER then
         error("invalid identifier: " .. magic)
     end
@@ -151,7 +151,7 @@ function EndOfCentralDirectoryRecord.read(buffer: ByteReader): EndOfCentralDirec
     this._centralDirectorySize = buffer:readS32LE()
     this._centralDirectoryOffset = buffer:readS32LE()
 
-    this.comment = buffer:readChars(buffer:readU16LE())
+    this.comment = buffer:read(buffer:readU16LE())
 
     return setmetatable(this, {__index = EndOfCentralDirectoryRecord})
 end
@@ -177,7 +177,7 @@ function ZipFile.fromString(bytes: string): ZipFile
     repeat
         this._buffer:seek(searchIndex)
 
-        if this._buffer:readChars(4) == EndOfCentralDirectoryRecord.IDENTIFIER then
+        if this._buffer:read(4) == EndOfCentralDirectoryRecord.IDENTIFIER then
             this._buffer:skip(-4)
             break
         end
@@ -197,7 +197,6 @@ function ZipFile.fromString(bytes: string): ZipFile
 
     local records = {}
     for _ = 1, this._eocd._totalCentralDirectoryRecords do
-        print(this._buffer._index)
         table.insert(records, CentralDirectoryRecord.read(this._buffer))
     end
     this.records = records
@@ -225,7 +224,7 @@ function ZipFile:readFile(index: integer): string
     local fileRecord = self.records[index]
     self._buffer:seek(fileRecord.relativeOffsetStart)
     local fileEntry = FileEntry.read(self._buffer)
-    return self._buffer:readChars(fileEntry.compressedSize)
+    return self._buffer:read(fileEntry.compressedSize)
 end
 
 -- local pakConstruct = require("test.construct")

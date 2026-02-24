@@ -1,6 +1,8 @@
--- if SERVER then return end
+(makeRequireCompat or function() end)()
 
 if game.GetMap() ~= "empty" then return end
+
+local ByteReader = require("lib.byte_reader")
 
 -- https://developer.valvesoftware.com/wiki/BSP_(Source)#Lump_types
 local LUMP_ENTITIES = 0
@@ -26,49 +28,51 @@ local LUMP_TEXDATA_STRING_TABLE = 44
 
 ---------------------------------------
 
-local mapName = "maps/rp_downtown_v2.bsp"
+local start = SysTime()
+
+local mapName = "maps/zs_centralsquare_v5b.bsp"
 local construct = NikNaks.Map(mapName)
 
 -- parse planes
 local planes = {}
-local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_PLANES ) )
-for i = 0, (buf._len / 20) - 1 do
+local buf = ByteReader.new( construct:GetLumpString( LUMP_PLANES ) )
+for i = 0, (buf:length() / 20) - 1 do
     planes[i] = {
-        normal = buf:ReadVector(),
-        dist = buf:ReadFloat(),
-        type = buf:ReadLong(),
+        normal = Vector( buf:readSingleLE(), buf:readSingleLE(), buf:readSingleLE() ),
+        dist = buf:readSingleLE(),
+        type = buf:readS32LE(),
     }
 end
 
 -- parse vertices
 local vertices = {}
 local vertLumpStr = construct:GetLumpString( LUMP_VERTEXES )
-local buf = NikNaks.BitBuffer( vertLumpStr )
-for i = 0, (buf._len / 12) - 1 do
+local buf = ByteReader.new( vertLumpStr )
+for i = 0, (buf:length() / 12) - 1 do
     vertices[i] = Vector(
-        buf:ReadFloat(),
-        buf:ReadFloat(),
-        buf:ReadFloat()
+        buf:readSingleLE(),
+        buf:readSingleLE(),
+        buf:readSingleLE()
     )
 end
 
 -- parse edges
 local edges = {}
 local edgeLumpStr = construct:GetLumpString( LUMP_EDGES )
-local buf = NikNaks.BitBuffer( edgeLumpStr )
-for i = 0, (buf._len / 4) - 1 do
+local buf = ByteReader.new( edgeLumpStr )
+for i = 0, (buf:length() / 4) - 1 do
     edges[i] = {
-        buf:ReadUShort(),
-        buf:ReadUShort(),
+        buf:readU16LE(),
+        buf:readU16LE(),
     }
 end
 
 -- parse surfedges
 local surfedges = {}
 local surfedgeLumpStr = construct:GetLumpString( LUMP_SURFEDGES )
-local buf = NikNaks.BitBuffer( surfedgeLumpStr )
-for i = 0, (buf._len / 4) - 1 do
-    surfedges[i] = buf:ReadLong()
+local buf = ByteReader.new( surfedgeLumpStr )
+for i = 0, (buf:length() / 4) - 1 do
+    surfedges[i] = buf:readS32LE()
 end
 
 local vertindices = {}
@@ -84,68 +88,68 @@ end
 -- parse faces
 local faces = {}
 local faceLumpStr = construct:GetLumpString( LUMP_FACES )
-local facebuf = NikNaks.BitBuffer( faceLumpStr )
+local facebuf = ByteReader.new( faceLumpStr )
 for i = 1, #faceLumpStr / 56 do
     local face = {
-        planenum = facebuf:ReadUShort(),
-        side = facebuf:ReadByte(),
-        onNode = facebuf:ReadByte(),
-        firstedge = facebuf:ReadLong(),
-        numedges = facebuf:ReadShort(),
-        texinfo = facebuf:ReadShort(),
-        dispinfo = facebuf:ReadShort(),
-        surfaceFogVolumeID = facebuf:ReadShort(),
+        planenum = facebuf:readU16LE(),
+        side = facebuf:readS8(),
+        onNode = facebuf:readS8(),
+        firstedge = facebuf:readS32LE(),
+        numedges = facebuf:readS16LE(),
+        texinfo = facebuf:readS16LE(),
+        dispinfo = facebuf:readS16LE(),
+        surfaceFogVolumeID = facebuf:readS16LE(),
         styles = {
-            facebuf:ReadByte(),
-            facebuf:ReadByte(),
-            facebuf:ReadByte(),
-            facebuf:ReadByte(),
+            facebuf:readS8(),
+            facebuf:readS8(),
+            facebuf:readS8(),
+            facebuf:readS8(),
         },
-        lightofs = facebuf:ReadLong(),
-        area = facebuf:ReadFloat(),
+        lightofs = facebuf:readS32LE(),
+        area = facebuf:readSingleLE(),
         LightmapTextureMinsInLuxels = {
-            facebuf:ReadLong(),
-            facebuf:ReadLong(),
+            facebuf:readS32LE(),
+            facebuf:readS32LE(),
         },
         LightmapTextureSizeInLuxels = {
-            facebuf:ReadLong(),
-            facebuf:ReadLong(),
+            facebuf:readS32LE(),
+            facebuf:readS32LE(),
         },
-        origFace = facebuf:ReadLong(),
-        numPrims = facebuf:ReadUShort(),
-        firstPrimID = facebuf:ReadUShort(),
-        smoothingGroups = facebuf:ReadULong(),
+        origFace = facebuf:readS32LE(),
+        numPrims = facebuf:readU16LE(),
+        firstPrimID = facebuf:readU16LE(),
+        smoothingGroups = facebuf:readU32LE(),
     }
     faces[i - 1] = face
 end
 
 -- "The TexdataStringTable (Lump 44) is an array of integers which are offsets into the TexdataStringData (lump 43)."
 local texdataStringIndices = {}
-local buf = NikNaks.BitBuffer(construct:GetLumpString(LUMP_TEXDATA_STRING_TABLE))
-for i = 0, (buf._len / 4) - 1 do
-   texdataStringIndices[i] = buf:ReadULong()
+local buf = ByteReader.new(construct:GetLumpString(LUMP_TEXDATA_STRING_TABLE))
+for i = 0, (buf:length() / 4) - 1 do
+   texdataStringIndices[i] = buf:readU32LE()
 end
 
 -- "The TexdataStringData lump consists of concatenated null-terminated strings giving the texture name."
 local texdataStrings = {}
-local texdataStringBuf = NikNaks.BitBuffer( construct:GetLumpString(LUMP_TEXDATA_STRING_DATA) )
+local texdataStringBuf = ByteReader.new( construct:GetLumpString(LUMP_TEXDATA_STRING_DATA) )
 
 local texdatas = {}
-local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_TEXDATA ) )
-for i = 0, (buf._len / 32) - 1 do
+local buf = ByteReader.new( construct:GetLumpString( LUMP_TEXDATA ) )
+for i = 0, (buf:length() / 32) - 1 do
    local texdata = {}
-   texdata.reflectivity = buf:ReadVector()
+   texdata.reflectivity = Vector( buf:readSingleLE(), buf:readSingleLE(), buf:readSingleLE() )
 
-   local texdataStringTableIndex = buf:ReadLong()
+   local texdataStringTableIndex = buf:readS32LE()
    texdata.nameStringTableID = texdataStringTableIndex
 
-   texdataStringBuf:Seek(texdataStringIndices[texdataStringTableIndex] * 8)
-   texdata.name = texdataStringBuf:ReadStringNull()
+   texdataStringBuf:seek(texdataStringIndices[texdataStringTableIndex])
+   texdata.name = texdataStringBuf:readString()
 
-   texdata.width = buf:ReadLong()
-   texdata.height = buf:ReadLong()
-   texdata.view_width = buf:ReadLong()
-   texdata.view_height = buf:ReadLong()
+   texdata.width = buf:readS32LE()
+   texdata.height = buf:readS32LE()
+   texdata.view_width = buf:readS32LE()
+   texdata.view_height = buf:readS32LE()
 
    texdatas[i] = texdata
 end
@@ -186,88 +190,88 @@ local SURFDRAW_DYNAMIC      = 0x0020
 local SURFDRAW_TANGENTSPACE = 0x0040
 
 local texinfos = {}
-local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_TEXINFO ) )
-for i = 0, (buf._len / 72) - 1 do
+local buf = ByteReader.new( construct:GetLumpString( LUMP_TEXINFO ) )
+for i = 0, (buf:length() / 72) - 1 do
     local texinfo = {
         textureVecs = {
             [0] = {
-                x = buf:ReadFloat(),
-                y = buf:ReadFloat(),
-                z = buf:ReadFloat(),
-                offset = buf:ReadFloat(),
+                x = buf:readSingleLE(),
+                y = buf:readSingleLE(),
+                z = buf:readSingleLE(),
+                offset = buf:readSingleLE(),
             },
             [1] = {
-                x = buf:ReadFloat(),
-                y = buf:ReadFloat(),
-                z = buf:ReadFloat(),
-                offset = buf:ReadFloat(),
+                x = buf:readSingleLE(),
+                y = buf:readSingleLE(),
+                z = buf:readSingleLE(),
+                offset = buf:readSingleLE(),
             },
         },
 
         lightmapVecs = {
             [0] = {
-                x = buf:ReadFloat(),
-                y = buf:ReadFloat(),
-                z = buf:ReadFloat(),
-                offset = buf:ReadFloat(),
+                x = buf:readSingleLE(),
+                y = buf:readSingleLE(),
+                z = buf:readSingleLE(),
+                offset = buf:readSingleLE(),
             },
             [1] = {
-                x = buf:ReadFloat(),
-                y = buf:ReadFloat(),
-                z = buf:ReadFloat(),
-                offset = buf:ReadFloat(),
+                x = buf:readSingleLE(),
+                y = buf:readSingleLE(),
+                z = buf:readSingleLE(),
+                offset = buf:readSingleLE(),
             },
         },
 
-        flags = buf:ReadLong(),
-        texdata = texdatas[buf:ReadLong()],
+        flags = buf:readS32LE(),
+        texdata = texdatas[buf:readS32LE()],
     }
     texinfos[i] = texinfo
 end
 
 local vertnormals = {}
-local buf = NikNaks.BitBuffer(construct:GetLumpString(LUMP_VERTNORMALS))
-for i = 0, (buf._len / 12) - 1 do
-    vertnormals[i] = buf:ReadVector()
+local buf = ByteReader.new(construct:GetLumpString(LUMP_VERTNORMALS))
+for i = 0, (buf:length() / 12) - 1 do
+    vertnormals[i] = Vector( buf:readSingleLE(), buf:readSingleLE(), buf:readSingleLE() )
 end
 
 local vertnormalindices = {}
-local buf = NikNaks.BitBuffer(construct:GetLumpString(LUMP_VERTNORMALINDICES))
-for i = 0, (buf._len / 2) - 1 do
-    vertnormalindices[i] = buf:ReadUShort()
+local buf = ByteReader.new(construct:GetLumpString(LUMP_VERTNORMALINDICES))
+for i = 0, (buf:length() / 2) - 1 do
+    vertnormalindices[i] = buf:readU16LE()
 end
 
 local dispinfos = {}
-local buf = NikNaks.BitBuffer( construct:GetLumpString( LUMP_DISPINFO ) )
-for i = 0, (buf._len / 176) - 1 do
+local buf = ByteReader.new( construct:GetLumpString( LUMP_DISPINFO ) )
+for i = 0, (buf:length() / 176) - 1 do
     local info = {
-        startPosition = buf:ReadVector(),
-        DispVertStart = buf:ReadLong(),
-        DispTriStart = buf:ReadLong(),
-        power = buf:ReadLong(),
-        minTess = buf:ReadLong(),
-        smoothingAngle = buf:ReadFloat(),
-        contents = buf:ReadLong(),
-        MapFace = buf:ReadUShort(),
-        LightmapAlphaStart = buf:ReadLong(),
-        LightmapSamplePositionStart = buf:ReadLong(),
+        startPosition = Vector( buf:readSingleLE(), buf:readSingleLE(), buf:readSingleLE() ),
+        DispVertStart = buf:readS32LE(),
+        DispTriStart = buf:readS32LE(),
+        power = buf:readS32LE(),
+        minTess = buf:readS32LE(),
+        smoothingAngle = buf:readSingleLE(),
+        contents = buf:readS32LE(),
+        MapFace = buf:readU16LE(),
+        LightmapAlphaStart = buf:readS32LE(),
+        LightmapSamplePositionStart = buf:readS32LE(),
         -- EdgeNeighbors[4]
         -- ConerNeighbors[4]
         -- AllowedVerts[10]
     }
-    buf:Skip(130 * 8) -- unimplemented members
+    buf:skip(130) -- unimplemented members
     info.sideLength = bit.lshift(1, info.power) + 1
     info.vertexCount = math.pow(info.sideLength, 2)
     dispinfos[i] = info
 end
 
 local dispverts = {}
-local buf = NikNaks.BitBuffer(construct:GetLumpString(LUMP_DISP_VERTS))
-for i = 0, (buf._len / 20) - 1 do
+local buf = ByteReader.new(construct:GetLumpString(LUMP_DISP_VERTS))
+for i = 0, (buf:length() / 20) - 1 do
     dispverts[i] = {
-        vec = buf:ReadVector(),
-        dist = buf:ReadFloat(),
-        alpha = buf:ReadFloat(),
+        vec = Vector( buf:readSingleLE(), buf:readSingleLE(), buf:readSingleLE() ),
+        dist = buf:readSingleLE(),
+        alpha = buf:readSingleLE(),
     }
 end
 
@@ -575,12 +579,15 @@ for k, face in pairs(faces) do
         local meshEntry = {
             mesh = _mesh,
             material = material,
+            materialName = texinfo.texdata.name,
         }
         table.insert(meshes, meshEntry)
     end
 
     ::_continue::
 end
+
+printf("Parsed %s in %02f seconds", mapName, SysTime() - start)
 
 
 if CLIENT then
@@ -624,6 +631,8 @@ gmaPath = gmaPath .. string.GetFileFromFilename(mapName)
 gmaPath = string.StripExtension(gmaPath) .. ".gma"
 gmaPath = string.lower(gmaPath)
 if not file.Exists(gmaPath, "DATA") then
+    local start = SysTime()
+
     local ZipFile = require("lib.zip")
     local zip = ZipFile.fromString(construct:GetLumpString(LUMP_PAKFILE))
 
@@ -633,12 +642,20 @@ if not file.Exists(gmaPath, "DATA") then
 
     for index, name in ipairs(zip:getFileNames()) do
         if gmaBuilder:isFileNameAllowed(name) then
-            print("Compiling", name)
             gmaBuilder:addFile(name, zip:readFile(index))
         end
     end
 
     file.Write(gmaPath, gmaBuilder:build())
+
+    printf("Wrote pak2gma in %02f seconds", SysTime() - start)
+
+    printf("Reloading materials...")
+    start = SysTime()
+    for _, meshEntry in pairs(meshes) do
+        Material(meshEntry.materialName)
+    end
+    printf("Reloaded materials in %02f seconds", SysTime() - start)
 end
 
 game.MountGMA("data/" .. gmaPath)

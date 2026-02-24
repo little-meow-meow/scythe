@@ -1,7 +1,8 @@
+(makeRequireCompat or function() end)()
 
 --- https://github.com/Facepunch/gmad/blob/master/include/AddonReader.h
 
-local BitBuffer = require("lib.bitbuffer_sh")
+local ByteWriter = require("lib.byte_writer")
 
 local interface FileEntry
     name: string
@@ -153,56 +154,42 @@ end
 local IDENTIFIER = "GMAD"
 local VERSION = 3
 function GMABuilder:build(): string
-    local buffer = BitBuffer()
-    buffer:SetLittleEndian(true)
+    local buffer = ByteWriter.new()
 
-    buffer:WriteData(IDENTIFIER)
-    buffer:WriteByte(VERSION)
+    buffer:write(IDENTIFIER)
+    buffer:write8(VERSION)
 
     -- steam id
-    buffer:WriteData("\x00\x00\x00\x00\x00\x00\x00\x00")
+    buffer:write("\x00\x00\x00\x00\x00\x00\x00\x00")
     -- timestamp
-    buffer:WriteData("\x00\x00\x00\x00\x00\x00\x00\x00")
+    buffer:write("\x00\x00\x00\x00\x00\x00\x00\x00")
 
     -- required content
-    buffer:WriteStringNull("")
+    buffer:writeString("")
 
-    buffer:WriteStringNull(self.name)
-    buffer:WriteStringNull(self.description)
-    buffer:WriteStringNull(self.author)
+    buffer:writeString(self.name)
+    buffer:writeString(self.description)
+    buffer:writeString(self.author)
 
     -- addon version
-    buffer:WriteULong(0)
+    buffer:write32LE(0)
 
     for index, fileEntry in ipairs(self.files) do
-        buffer:WriteULong(index)
-        buffer:WriteStringNull(fileEntry.name)
-        buffer:WriteULong(fileEntry.size)
-        buffer:WriteULong(0x00) -- high 32-bits of file size :\
-        buffer:WriteULong(fileEntry.crc32)
+        buffer:write32LE(index)
+        buffer:writeString(fileEntry.name)
+        buffer:write32LE(fileEntry.size as integer)
+        buffer:write32LE(0x00) -- high 32-bits of file size :\
+        buffer:write32LE(fileEntry.crc32 as integer)
     end
-    buffer:WriteULong(0)
+    buffer:write32LE(0)
 
-    -- print("About to write files")
-    -- for _, fileEntry in ipairs(self.files) do
-    --     buffer:WriteData(fileEntry.content)
-    -- end
-    -- print("Finished writing files")
-
-    -- buffer:Seek(0)
-    -- return buffer:Read()
-
-    -- bitbuffer library is outstandingly slow
-    -- directly append byte-strings instead
-
-    buffer:Seek(0)
-    local result = buffer:Read()
-
+    print("About to write files")
     for _, fileEntry in ipairs(self.files) do
-        result = result .. fileEntry.content
+        buffer:write(fileEntry.content)
     end
+    print("Finished writing files")
 
-    return result
+    return buffer:build()
 end
 
 ---
