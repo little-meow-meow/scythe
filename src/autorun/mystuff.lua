@@ -13,7 +13,7 @@ function _G._compatRequire(path)
     if success then
         return unpack( ret )
     else
-        return __require(path)
+        return require(path)
     end
 end
 
