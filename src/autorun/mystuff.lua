@@ -1,7 +1,6 @@
 
 AddCSLuaFile("lib/bit.lua")
 AddCSLuaFile("lib/bitflag.lua")
-AddCSLuaFile("lib/bitbuffer_sh.lua")
 AddCSLuaFile("lib/floating.lua")
 AddCSLuaFile("lib/zip.lua")
 
