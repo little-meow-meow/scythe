@@ -24,41 +24,6 @@ function ENT:Initialize()
 
     self:EnableCustomCollisions()
     self:SetCollisionBounds( HAMMER_MAX_MAP_VECTOR * -1, HAMMER_MAX_MAP_VECTOR )
-
-    -- self.VERTICES = {}
-    -- local scale = 100
-	-- for x = 0, 32 * scale, scale do
-    --     if x == scale * 3 then continue end
-	-- 	for y = 0, 32 * scale, scale do
-	-- 		table.insert( self.VERTICES, { pos = ( self:GetPos() + Vector( x + scale, y + scale, 100 ) ) } )
-	-- 		table.insert( self.VERTICES, { pos = ( self:GetPos() + Vector( x + scale, y, 100 ) ) } )
-	-- 		table.insert( self.VERTICES, { pos = ( self:GetPos() + Vector( x, y, 100 ) ) } )
-
-	-- 		table.insert( self.VERTICES, { pos = ( self:GetPos() + Vector( x + scale, y + scale, 100 ) ) } )
-	-- 		table.insert( self.VERTICES, { pos = ( self:GetPos() + Vector( x, y + scale, 100 ) ) } )
-	-- 		table.insert( self.VERTICES, { pos = ( self:GetPos() + Vector( x, y, 100 ) ) } )
-	-- 	end
-	-- end
-
-    -- self:PhysicsFromMesh( self.VERTICES )
-    -- self:GetPhysicsObject():EnableMotion( false )
-    -- self:EnableCustomCollisions()
-
-    -- if CLIENT then
-    --     self.material = Material( "editor/wireframe" )
-    --     self._mesh = Mesh()
-    --     self._mesh:BuildFromTriangles( self.VERTICES )
-    --     -- mesh.Begin( self._mesh, MATERIAL_TRIANGLES, 1024 )
-    --     --     for _, vert in pairs( self.VERTICES ) do
-    --     --         mesh.Position( vert.pos )
-    --     --     end
-    --     -- mesh.End()
-
-    --     -- self:SetRenderBounds(
-    --     --     Vector( -500, -500, -500 ),
-    --     --     Vector( 500, 500, 500 )
-    --     -- )
-    -- end
 end
 
 function ENT:BuildFromTriangles( soup )
@@ -72,14 +37,7 @@ function ENT:BuildFromTriangles( soup )
     end
 end
 
-local MAT_WIREFRAME = Material( "editor/wireframe" )
 function ENT:Draw()
-    -- self:DrawModel()
-
-    -- if self.mesh then
-    --     render.SetMaterial( MAT_WIREFRAME )
-    --     self._mesh:Draw()
-    -- end
 end
 
 local function FlagsToString( valueFlags )
@@ -131,41 +89,6 @@ local function FlagsToString( valueFlags )
 end
 
 function ENT:TestCollision( startpos, delta, isbox, extents, mask )
-
-    -- print(FlagsToString(33636363))
-
-    -- if CLIENT then return end
-
-    -- print("Virtual worldspawn trace hit!")
-    -- print("Start", startpos)
-    -- print("Delta", delta)
-    -- print("End", startpos + delta)
-    -- print("Is box", isbox)
-    -- print("Extents", extents)
-    -- print("Mask", FlagsToString(mask))
-    -- print("Tick", engine.TickCount())
-    -- print()
-
-    -- if mask == 69 then
-    --     print("Trip!")
-    --     return
-    -- end
-
-    -- if mask == MASK_PLAYERSOLID and delta.z ~= -3 then
-    --     return
-    -- end
-
-    -- if delta.z ~= -3 then return end
-
-
-    -- Trap for debugging
-
-    -- a = true
-    -- while a do
-    --     a = true
-    -- end
-
-    -- print("abc")
 
     local endPos = startpos + delta
     if endPos.z <= -136 and delta.z == -3 then
