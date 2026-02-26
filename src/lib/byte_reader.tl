@@ -126,6 +126,9 @@ function ByteReader:read(length: integer): string
 end
 
 -- function ByteReader:readU8(): integer
+function ByteReader:readU8(): integer
+    return self:pop(1)
+end
 
 -- function ByteReader:readS8(): integer
 function ByteReader:readS8(): integer

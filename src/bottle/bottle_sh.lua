@@ -299,6 +299,20 @@ local function parseMap(mapName)
         coroutine.yield("Dispverts", i / max)
     end
 
+    map.lightSamples = {}
+    local buf = ByteReader.new(construct:GetLumpString(LUMP_LIGHTING))
+    local max = buf:length() / 4 - 1
+    local inverseMax = 1 / max
+    for i = 0, max do
+        map.lightSamples[i] = {
+            r = buf:readU8(),
+            g = buf:readU8(),
+            b = buf:readU8(),
+            exponent = buf:readS8(),
+        }
+        coroutine.yield("Lighting", i * inverseMax)
+    end
+
     return map
 end
 
@@ -329,6 +343,9 @@ local function buildDisplacement(dispverts, dispinfo, corners)
 
             vertex.normal = Vector()
             vertex.color = Color(0xFF, 0xFF, 0xFF, dispVert.alpha)
+
+            vertex.lightmapU = ratioX
+            vertex.lightmapV = ratioY
 
             vertices[y * dispinfo.sideLength + x] = vertex
         end
@@ -420,7 +437,7 @@ local function buildDisplacement(dispverts, dispinfo, corners)
             v.normal = v.normal * (1 / count)
         end
 
-        coroutine.yield()
+        coroutine.yield("Building displacements...")
     end
 
     return vertices
@@ -428,9 +445,11 @@ end
 
 
 local function buildMap(map, meshes)
+    local lightmapAllocRequests = {}
+
     for k, face in pairs(map.faces) do
         if k % 10 <= 0 then
-            coroutine.yield()
+            coroutine.yield("Building geometry...")
         end
 
         local firstEdgeIndex = face.firstedge
@@ -440,6 +459,32 @@ local function buildMap(map, meshes)
 
         local texinfo = map.texinfos[face.texinfo]
         local texdata = texinfo.texdata
+
+        local lightTextureLuxels = face.LightmapTextureSizeInLuxels
+        local lightmapLuxelWidth = lightTextureLuxels[1] + 1
+        local lightmapLuxelHeight = lightTextureLuxels[2] + 1
+        local hasBumpmapSamples = bit.band(texinfo.flags, SURF_BUMPLIGHT) ~= 0
+        local lightStyles = {}
+        for _, value in ipairs(face.styles) do
+            if value == 0xFF then break end
+            table.insert(lightStyles, value)
+        end
+        local lightmapSize = (hasBumpmapSamples and 4 or 1) * lightmapLuxelWidth * lightmapLuxelHeight
+
+        local lightmapData = {
+            width = lightmapLuxelWidth,
+            height = lightmapLuxelHeight,
+            pow2Width = math.pow(2, math.ceil(math.log(lightmapLuxelWidth)/math.log(2))),
+            pow2Height = math.pow(2, math.ceil(math.log(lightmapLuxelHeight)/math.log(2))),
+            styles = lightStyles,
+            hasBumpmapSamples = hasBumpmapSamples,
+            sampleOffset = face.lightofs / 4,
+            lightmapSize = lightmapSize,
+        }
+
+        if face.lightofs ~= -1 then
+            lightmapAllocRequests[k] = lightmapData
+        end
 
         if bit.band( texinfo.flags, SURF_SKY2D + SURF_SKY ) > 0 then
             goto _continue
@@ -499,6 +544,9 @@ local function buildMap(map, meshes)
                 vertex.u = u / texdata.width
                 vertex.v = v / texdata.height
 
+                vertex.lightmapU = ( vertex.lightmapU * ( face.LightmapTextureSizeInLuxels[1] ) + 0.5 ) / lightmapData.pow2Width
+                vertex.lightmapV = ( vertex.lightmapV * ( face.LightmapTextureSizeInLuxels[2] ) + 0.5 ) / lightmapData.pow2Height
+
                 -- VERIFY: Is this the correct way to index the vertnormalindices lump?
                 -- local vertNormal = vertnormals[vertnormalindices[disp.DispVertStart + dispVertIndexOffset]]
                 -- local tangentS = vertNormal:Cross(tVector)
@@ -554,8 +602,10 @@ local function buildMap(map, meshes)
                     vertexInfo.tangentT = tangentT
                 end
 
-                -- -- lightmap coordinates
-                -- mesh.TexCoord( 1, 0, 0 )
+                vertexInfo.lightmapU = vertex.x * texinfo.lightmapVecs[0].x + vertex.y * texinfo.lightmapVecs[0].y + vertex.z * texinfo.lightmapVecs[0].z + texinfo.lightmapVecs[0].offset
+                vertexInfo.lightmapV = vertex.x * texinfo.lightmapVecs[1].x + vertex.y * texinfo.lightmapVecs[1].y + vertex.z * texinfo.lightmapVecs[1].z + texinfo.lightmapVecs[1].offset
+                vertexInfo.lightmapU = (vertexInfo.lightmapU + 0.5 - face.LightmapTextureMinsInLuxels[1]) / lightmapData.pow2Width
+                vertexInfo.lightmapV = (vertexInfo.lightmapV + 0.5 - face.LightmapTextureMinsInLuxels[2]) / lightmapData.pow2Height
 
                 vertexInfo.normal = plane.normal
 
@@ -577,6 +627,10 @@ local function buildMap(map, meshes)
 
                     if vertexInfo.u and vertexInfo.v then
                         mesh.TexCoord( 0, vertexInfo.u, vertexInfo.v )
+                    end
+
+                    if vertexInfo.lightmapU and vertexInfo.lightmapV then
+                        mesh.TexCoord( 1, vertexInfo.lightmapU, vertexInfo.lightmapV, 0, 0 )
                     end
 
                     if vertexInfo.normal then
@@ -605,11 +659,64 @@ local function buildMap(map, meshes)
                 material = material,
                 materialName = texinfo.texdata.name,
             }
-            table.insert(meshes, meshEntry)
+            meshes[k] = meshEntry
         end
 
         ::_continue::
     end
+
+    if SERVER then return end
+
+    for faceId, alloc in pairs(lightmapAllocRequests) do
+        if alloc.sampleOffset == -1 then
+            goto _continue
+        end
+
+        local mapSize = alloc.width * alloc.height
+
+        -- print("building lightmap for face", faceId, alloc.width, alloc.height, mapSize, alloc.sampleOffset)
+        local rt = GetRenderTarget("Lightmap" .. faceId, alloc.pow2Width, alloc.pow2Height)
+        -- local rt = GetRenderTargetEx("Lightmap" .. faceId, alloc.pow2Width, alloc.pow2Height, RT_SIZE_NO_CHANGE, MATERIAL_RT_DEPTH_NONE, 2 + 256, 0, IMAGE_FORMAT_BGRA8888)
+        render.PushRenderTarget( rt )
+        cam.Start2D()
+            draw.NoTexture()
+
+            -- flood the texture with pink so we can easily spot lightmap bugs
+            surface.SetDrawColor(0xFF, 0x00, 0xFF, 0xFF)
+            surface.DrawRect(0, 0, alloc.pow2Width, alloc.pow2Height)
+
+            local x = 0
+            local y = 0
+            for i = alloc.sampleOffset, alloc.sampleOffset + mapSize - 1 do
+                local sample = map.lightSamples[i]
+                if not sample then
+                    printf("invalid sample offset %s for faceid %s", i, faceId)
+                    break
+                end
+                local mult = math.pow(2, sample.exponent)
+                surface.SetDrawColor( sample.r * mult, sample.g * mult, sample.b * mult )
+                surface.DrawRect( x, y, 1, 1 )
+
+                local newX = (x + 1) % (alloc.width)
+                if newX < x then
+                    y = y + 1
+                end
+                x = newX
+            end
+        cam.End2D()
+        render.PopRenderTarget()
+
+        meshes[faceId].lightmap = rt
+
+        coroutine.yield("Rasterizing lightmaps")
+        ::_continue::
+    end
+
+    -- local inverseMax = 1 / #lightmapAllocRequests
+    -- for allocIndex, alloc in ipairs(lightmapAllocRequests) do
+    --     lightmapPacker:allocate(alloc)
+    --     coroutine.yield("Building lightmaps", allocIndex * inverseMax)
+    -- end
 end
 
 local function mountMapPak(mapName)
@@ -653,15 +760,21 @@ end
 
 local meshes = {}
 
+_G.map = _G.map
+_G.lastMap = _G.lastMap
 local function loadMap(mapName)
     local work = coroutine.create(function()
-        local map = parseMap(mapName)
+        if _G.lastMap ~= mapName then
+            _G.map = nil
+        end
+        _G.map = _G.map or parseMap(mapName)
+        _G.lastMap = mapName
 
         if CLIENT then
             mountMapPak(mapName)
         end
 
-        buildMap(map, meshes)
+        buildMap(_G.map, meshes)
     end)
 
     local TICK_LENGTH = engine.TickInterval()
@@ -675,6 +788,11 @@ local function loadMap(mapName)
         local ratio = nil
         while spentTime < QUOTA and coroutine.status(work) ~= "dead" do
             success, section, ratio = coroutine.resume(work)
+
+            if not success then
+                error(section)
+            end
+
             spentTime = SysTime() - workStart
         end
         if CLIENT then
@@ -736,8 +854,9 @@ local function loadMapFromWorkshop(workshopId, mapName)
     end)
 end
 
-if CLIENT then
+if true then
     loadMap("maps/gm_construct.bsp")
+    -- loadMap("maps/rp_downtown_v2.bsp")
     -- loadMapFromWorkshop("326332456", "maps/gm_fork.bsp")
     -- loadMapFromWorkshop("105982362", "maps/gm_bigcity.bsp")
     -- loadMapFromWorkshop("159321088", "maps/ttt_minecraft_b5.bsp")
@@ -761,14 +880,31 @@ end
 
 if CLIENT then
 
+    local TEX_WHITE = GetRenderTarget("TEX_WHITE", 4, 4)
+    render.PushRenderTarget(TEX_WHITE)
+    cam.Start2D()
+    draw.NoTexture()
+    surface.SetDrawColor( 0x7F, 0x7F, 0x7F, 0xFF )
+    surface.DrawRect( 0, 0, 4, 4 )
+    cam.End2D()
+    render.PopRenderTarget()
+
+    -- local TEX_WHITE = Material( "vgui/white" ):GetTexture("$basetexture")
     local matWireframe = Material( "editor/wireframe" ) -- The material (a wireframe)
     hook.Add( "PostDrawOpaqueRenderables", "IMeshTest", function()
+        -- render.SuppressEngineLighting(true)
         for _, meshEntry in pairs(meshes) do
             render.SetMaterial( meshEntry.material )
             -- render.SetMaterial( matWireframe )
-            -- render.SetLightmapTexture( meshLightmap )
+            render.SetLightmapTexture(meshEntry.lightmap and meshEntry.lightmap or TEX_WHITE)
+
             meshEntry.mesh:Draw()
+
+            render.RenderFlashlights( function()
+                meshEntry.mesh:Draw()
+            end )
         end
+        -- render.SuppressEngineLighting(false)
     end )
 
 end
