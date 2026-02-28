@@ -5,6 +5,7 @@ AddCSLuaFile("lib/bit.lua")
 AddCSLuaFile("lib/bitflag.lua")
 AddCSLuaFile("lib/floating.lua")
 AddCSLuaFile("lib/zip.lua")
+AddCSLuaFile("lib/byte_reader.lua")
 
 local __require = _G.require
 local cache = {}
