@@ -57,6 +57,24 @@ local function linearInterpolateVector(vector, fromVector, toVector, ratio)
     vector.z = Lerp(ratio, fromVector.z, toVector.z)
 end
 
+local function ColorClamp(r, g, b)
+    local maxChannel = math.max(r, g, b)
+    if maxChannel > 1 then
+        r = r * (1 / maxChannel)
+        g = g * (1 / maxChannel)
+        b = b * (1 / maxChannel)
+    end
+    return math.max(r, 0), math.max(g, 0), math.max(b, 0)
+end
+
+local g_LinearToVertex = {}
+local screenGamma = 2.1
+local overbrightFactor = 0.5
+for i = 0, 4095 do
+    local f = math.pow(i / 1024, 1 / screenGamma)
+    g_LinearToVertex[i] = math.min(f * overbrightFactor, 1)
+end
+
 local function parseMap(mapName)
     local map = {}
 
@@ -466,7 +484,7 @@ local function buildMap(map, meshes)
         local hasBumpmapSamples = bit.band(texinfo.flags, SURF_BUMPLIGHT) ~= 0
         local lightStyles = {}
         for _, value in ipairs(face.styles) do
-            if value == 0xFF then break end
+            if value == -1 then break end
             table.insert(lightStyles, value)
         end
         local lightmapSize = (hasBumpmapSamples and 4 or 1) * lightmapLuxelWidth * lightmapLuxelHeight
@@ -482,7 +500,7 @@ local function buildMap(map, meshes)
             lightmapSize = lightmapSize,
         }
 
-        if face.lightofs ~= -1 then
+        if bit.band(texinfo.flags, SURF_NOLIGHT) == 0 and face.lightofs ~= -1 then
             lightmapAllocRequests[k] = lightmapData
         end
 
@@ -693,8 +711,29 @@ local function buildMap(map, meshes)
                     printf("invalid sample offset %s for faceid %s", i, faceId)
                     break
                 end
-                local mult = math.pow(2, sample.exponent)
-                surface.SetDrawColor( sample.r * mult, sample.g * mult, sample.b * mult )
+
+                -- unpack rgb into "linear" color space: (0..4)
+                local mult = math.pow(2, sample.exponent) / 255
+                local r = sample.r * mult
+                local g = sample.g * mult
+                local b = sample.b * mult
+
+                -- "linear to lightmap"
+                r = math.Clamp(math.Round(r * 1024), 0, 4091)
+                g = math.Clamp(math.Round(g * 1024), 0, 4091)
+                b = math.Clamp(math.Round(b * 1024), 0, 4091)
+
+                r = g_LinearToVertex[r]
+                g = g_LinearToVertex[g]
+                b = g_LinearToVertex[b]
+
+                r, g, b = ColorClamp(r, g, b)
+
+                r = r * 255
+                g = g * 255
+                b = b * 255
+
+                surface.SetDrawColor( r, g, b )
                 surface.DrawRect( x, y, 1, 1 )
 
                 local newX = (x + 1) % (alloc.width)
