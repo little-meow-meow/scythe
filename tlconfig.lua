@@ -11,4 +11,8 @@ return {
         "include",
         "src",
     },
+
+    disable_warnings = {
+        "unused",
+    },
 }

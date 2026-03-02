@@ -6097,7 +6097,7 @@ end
 --- **NOTE**: This feature only works when importing `.png` or `.jpg` image files.
 -- @return --- Generated material.
 -- @return --- How long it took for the function to run.
-global function Material(materialName: string, pngParameters: string): GIMaterial, number
+global function Material(materialName: string, pngParameters?: string): GIMaterial, number
 end
 
 --- Returns a VMatrix object, a 4x4 matrix.
@@ -11222,7 +11222,7 @@ global record mesh
     -- @param t --- T coordinate. Will be optional in the next update.
     -- @param u --- U coordinate.
     -- @param v --- V coordinate.
-    TexCoord: function(set: number, s: number, t: number, u: number, v: number)
+    TexCoord: function(set: number, s: number, t: number, u?: number, v?: number)
 
     --- A set of four numbers that can be used for arbitrary purposes by Material shaders.
     --- This is most commonly used to provide tangent information about each vertex to the Material's shader.
