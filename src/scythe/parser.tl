@@ -262,6 +262,50 @@ local function parseFaces(reader: ByteReader, data: BSPData)
     end
 end
 
+local function parseVisibility(reader: ByteReader, data: BSPData)
+    local header = data.header.lumpHeaders[LUMP_VISIBILITY]
+    reader:seek(header.offset)
+
+    local bitpackedPVSOffset = {}
+    local bitpackedPASOffset = {}
+    local clusterCount = reader:readS32LE()
+    for clusterIndex = 0, clusterCount - 1 do
+        bitpackedPVSOffset[clusterIndex] = reader:readS32LE() + header.offset
+        bitpackedPASOffset[clusterIndex] = reader:readS32LE() + header.offset
+    end
+
+    for clusterIndex = 0, clusterCount - 1 do
+        reader:seek(bitpackedPVSOffset[clusterIndex])
+
+        local clusterPVS = {}
+        local neighborClusterIndex = 0
+        while neighborClusterIndex <= clusterCount - 1 do
+            local b = reader:readU8()
+
+            -- run-length compression of non-visible clusters
+            if b == 0 then
+                local skipBytes = reader:readU8()
+                neighborClusterIndex = neighborClusterIndex + skipBytes * 8
+                goto _continue
+            end
+
+            clusterPVS[neighborClusterIndex+0] = bit.band(b, 0x1) == 0x1
+            clusterPVS[neighborClusterIndex+1] = bit.band(b, 0x2) == 0x2
+            clusterPVS[neighborClusterIndex+2] = bit.band(b, 0x4) == 0x4
+            clusterPVS[neighborClusterIndex+3] = bit.band(b, 0x8) == 0x8
+            clusterPVS[neighborClusterIndex+4] = bit.band(b, 0x10) == 0x10
+            clusterPVS[neighborClusterIndex+5] = bit.band(b, 0x20) == 0x20
+            clusterPVS[neighborClusterIndex+6] = bit.band(b, 0x40) == 0x40
+            clusterPVS[neighborClusterIndex+7] = bit.band(b, 0x80) == 0x80
+
+            neighborClusterIndex = neighborClusterIndex + 8
+            ::_continue::
+        end
+
+        data.clusterVisibility[clusterIndex] = clusterPVS
+    end
+end
+
 local function parseVisibilityLeaves(reader: ByteReader, data: BSPData)
     local header = data.header.lumpHeaders[LUMP_LEAFS]
     reader:seek(header.offset)
@@ -282,6 +326,11 @@ local function parseVisibilityLeaves(reader: ByteReader, data: BSPData)
 
         -- padding
         reader:skip(2)
+
+        if leaf.clusterIndex ~= -1 then
+            data.clusterToLeafIndices[leaf.clusterIndex] = data.clusterToLeafIndices[leaf.clusterIndex] or {}
+            table.insert(data.clusterToLeafIndices[leaf.clusterIndex], i)
+        end
 
         data.leaves[i] = leaf
     end
@@ -310,10 +359,6 @@ local function parseVisibilityNodes(reader: ByteReader, data: BSPData)
         -- padding
         reader:skip(2)
     end
-end
-
-local function parseVisibility(reader: ByteReader, data: BSPData)
-    -- TODO: Parse PVS & PAS for clusters
 end
 
 function BSPParser.parse(reader: ByteReader): BSPData
@@ -346,6 +391,7 @@ function BSPParser.parse(reader: ByteReader): BSPData
     parseTextures(reader, data)
     parseTextureInfos(reader, data)
     parseFaces(reader, data)
+    parseVisibility(reader, data)
     parseVisibilityLeaves(reader, data)
     parseVisibilityNodes(reader, data)
 

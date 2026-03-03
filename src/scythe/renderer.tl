@@ -198,30 +198,31 @@ function BSPRenderer:buildRenderables()
 end
 
 local MAT_WIREFRAME = Material("editor/wireframe")
-function BSPRenderer:drawLeaf(leafIndex: integer)
-    local leaf = self.bspData.leaves[leafIndex]
-    for i = 0, leaf.leafFaceCount - 1 do
-        local face = self.bspData.leafFaces[leaf.leafFaceIndexOffset + i]
-        local renderable = self.faceToRenderableMap[face]
-        render.SetMaterial(renderable.material or MAT_WIREFRAME)
-        renderable.mesh:Draw()
+
+function BSPRenderer:drawCluster(clusterIndex: integer)
+    for _, leafIndex in ipairs(self.bspData.clusterToLeafIndices[clusterIndex]) do
+        local leaf = self.bspData.leaves[leafIndex]
+        for i = 0, leaf.leafFaceCount - 1 do
+            local face = self.bspData.leafFaces[leaf.leafFaceIndexOffset + i]
+            local renderable = self.faceToRenderableMap[face]
+            render.SetMaterial(renderable.material or MAT_WIREFRAME)
+            renderable.mesh:Draw()
+        end
+    end
+end
+
+function BSPRenderer:drawClusters(clusterIndex: integer)
+    self:drawCluster(clusterIndex)
+
+    for neighboringClusterIndex, isVisible in pairs(self.bspData.clusterVisibility[clusterIndex]) do
+        if isVisible then
+            self:drawCluster(neighboringClusterIndex)
+        end
     end
 end
 
 function BSPRenderer:draw()
-    self:drawLeaf(4053)
-    -- for _, renderable in ipairs(self.renderables) do
-
-    --     render.SetMaterial(renderable.material or MAT_WIREFRAME)
-    --     -- render.SetMaterial( matWireframe )
-    --     -- render.SetLightmapTexture(meshEntry.lightmap and meshEntry.lightmap or TEX_WHITE)
-
-    --     renderable.mesh:Draw()
-
-    --     -- render.RenderFlashlights( function()
-    --     --     renderable.mesh:Draw()
-    --     -- end )
-    -- end
+    self:drawClusters(1)
 end
 
 return BSPRenderer

@@ -126,8 +126,11 @@ local record BSPData
     textures: {integer: TextureData}
     textureInfos: {integer: TextureInfo}
     faces: {integer: Face}
-    leafFaces: {integer: Face}
+    clusterVisibility: {integer: {integer: boolean}}
+    clusterAudibility: {integer: {integer: boolean}}
     leaves: {integer: PartitionLeaf}
+    leafFaces: {integer: Face}
+    clusterToLeafIndices: {integer: {integer}} -- subset is not zero-indexed!
     nodes: {integer: PartitionNode}
     lighting: {integer: ColorRGBExp32}
 end
@@ -150,8 +153,11 @@ function BSPData.new(): BSPData
         textures = {},
         textureInfos = {},
         faces = {},
+        clusterVisibility = {},
+        clusterAudibility = {},
         leaves = {},
         leafFaces = {},
+        clusterToLeafIndices = {},
         nodes = {},
         lighting = {},
     }
