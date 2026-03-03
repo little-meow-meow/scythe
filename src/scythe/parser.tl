@@ -350,12 +350,12 @@ end
 
 ---
 
-local test = io.open("src/test/gm_construct.bsp", "rb"):read("*a")
+-- local test = io.open("src/test/gm_construct.bsp", "rb"):read("*a")
 
-local start = os.clock()
-local bspData = BSPParser.parse(ByteReader.new(test))
+-- local start = os.clock()
+-- local bspData = BSPParser.parse(ByteReader.new(test))
 
-print(string.format("Parsed in %f seconds", os.clock() - start))
+-- print(string.format("Parsed in %f seconds", os.clock() - start))
 
 ---
 
