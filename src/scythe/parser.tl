@@ -252,7 +252,11 @@ local function parseFaces(reader: ByteReader, data: BSPData)
             face.edges[edgeIndex] = data.surfaceEdges[face.firstEdgeIndex + edgeIndex]
         end
 
-        face.displacementInfo = data.displacementInfos[face.displacementInfoIndex]
+        if face.displacementInfoIndex >= 0 then
+            face.displacementInfo = data.displacementInfos[face.displacementInfoIndex]
+        else
+            face.displacementInfo = nil
+        end
 
         data.faces[i] = face
     end

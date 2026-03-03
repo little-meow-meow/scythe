@@ -180,10 +180,10 @@ end
 function BSPRenderer:buildRenderables()
     for faceIndex, face in pairs(self.bspData.faces) do
         local renderable: Renderable = nil
-        if face.displacementInfo == nil then
+        if face.displacementInfoIndex == -1 then
             renderable = buildBrushFace(face, self.bspData)
         else
-            renderable = buildDisplacement(face, self.bspData)
+            -- renderable = buildDisplacement(face, self.bspData)
         end
         table.insert(self.renderables, renderable)
     end
