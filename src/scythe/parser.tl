@@ -218,7 +218,7 @@ local function parseFaces(reader: ByteReader, data: BSPData)
             plane = data.planes[reader:readU16LE()],
             oppositeToPlane = reader:readU8() ~= 0,
             onNode = reader:readU8() == 1,
-            firstEdgeIndex = reader:readU16LE(),
+            firstEdgeIndex = reader:readS32LE(),
             edgeCount = reader:readU16LE(),
             -- edges = [...]
             texture = data.textureInfos[reader:readS16LE()],
