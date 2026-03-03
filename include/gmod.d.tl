@@ -6290,7 +6290,7 @@ end
 -- @param tableToPrint --- The table to be printed
 -- @param indent --- Number of tabs to start indenting at. Increases by 2 when entering another table.
 -- @param done --- Internal argument, you shouldn't normally change this. Used to check if a nested table has already been printed so it doesn't get caught in a loop.
-global function PrintTable(tableToPrint: table, indent: number, done: table)
+global function PrintTable(tableToPrint: table, indent?: number, done?: table)
 end
 
 --- Creates a new ProjectedTexture.
@@ -20883,6 +20883,10 @@ global interface GVector
 
     --- Sets x, y and z to 0.
     Zero: function(self)
+
+    x: number
+    y: number
+    z: number
 end
 
 

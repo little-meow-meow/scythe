@@ -6,6 +6,7 @@ AddCSLuaFile("lib/bitflag.lua")
 AddCSLuaFile("lib/floating.lua")
 AddCSLuaFile("lib/zip.lua")
 AddCSLuaFile("lib/byte_reader.lua")
+AddCSLuaFile("lib/deferred.lua")
 
 local __require = _G.require
 local cache = {}
@@ -34,4 +35,12 @@ end
 
 AddCSLuaFile("bottle/bottle_sh.lua")
 include("bottle/bottle_sh.lua")
+
+AddCSLuaFile("scythe/bsp.lua")
+AddCSLuaFile("scythe/renderer.lua")
+AddCSLuaFile("scythe/lightmaps.lua")
+AddCSLuaFile("scythe/parser.lua")
+AddCSLuaFile("scythe/types.lua")
+AddCSLuaFile("scythe/scythe.lua")
+include("scythe/scythe.lua")
 

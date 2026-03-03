@@ -289,7 +289,7 @@ local function parseVisibilityLeaves(reader: ByteReader, data: BSPData)
     header = data.header.lumpHeaders[LUMP_LEAFFACES]
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 2) - 1 do
-        data.leafFaceIndices[i] = data.faces[reader:readU16LE()]
+        data.leafFaces[i] = data.faces[reader:readU16LE()]
     end
 end
 

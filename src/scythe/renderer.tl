@@ -32,6 +32,7 @@ end
 local record BSPRenderer
     bspData: BSPData
     renderables: {Renderable}
+    faceToRenderableMap: {BSPData.Face: Renderable}
 
     buildRenderables: function(self: BSPRenderer)
 end
@@ -39,6 +40,8 @@ end
 function BSPRenderer.new(bspData: BSPData): BSPRenderer
     local renderer: BSPRenderer = setmetatable({}, {__index = BSPRenderer})
     renderer.bspData = bspData
+    renderer.renderables = {}
+    renderer.faceToRenderableMap = {}
     renderer:buildRenderables()
     return renderer
 end
@@ -185,6 +188,7 @@ function BSPRenderer:buildRenderables()
         else
             -- renderable = buildDisplacement(face, self.bspData)
         end
+        self.faceToRenderableMap[face] = renderable
         table.insert(self.renderables, renderable)
     end
 
@@ -193,10 +197,31 @@ function BSPRenderer:buildRenderables()
     -- TODO: Iterate decals ...
 end
 
+local MAT_WIREFRAME = Material("editor/wireframe")
 function BSPRenderer:drawLeaf(leafIndex: integer)
+    local leaf = self.bspData.leaves[leafIndex]
+    for i = 0, leaf.leafFaceCount - 1 do
+        local face = self.bspData.leafFaces[leaf.leafFaceIndexOffset + i]
+        local renderable = self.faceToRenderableMap[face]
+        render.SetMaterial(renderable.material or MAT_WIREFRAME)
+        renderable.mesh:Draw()
+    end
 end
 
 function BSPRenderer:draw()
+    self:drawLeaf(4053)
+    -- for _, renderable in ipairs(self.renderables) do
+
+    --     render.SetMaterial(renderable.material or MAT_WIREFRAME)
+    --     -- render.SetMaterial( matWireframe )
+    --     -- render.SetLightmapTexture(meshEntry.lightmap and meshEntry.lightmap or TEX_WHITE)
+
+    --     renderable.mesh:Draw()
+
+    --     -- render.RenderFlashlights( function()
+    --     --     renderable.mesh:Draw()
+    --     -- end )
+    -- end
 end
 
 return BSPRenderer

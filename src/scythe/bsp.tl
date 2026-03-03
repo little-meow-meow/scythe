@@ -126,7 +126,7 @@ local record BSPData
     textures: {integer: TextureData}
     textureInfos: {integer: TextureInfo}
     faces: {integer: Face}
-    leafFaceIndices: {integer: Face}
+    leafFaces: {integer: Face}
     leaves: {integer: PartitionLeaf}
     nodes: {integer: PartitionNode}
     lighting: {integer: ColorRGBExp32}
@@ -151,7 +151,7 @@ function BSPData.new(): BSPData
         textureInfos = {},
         faces = {},
         leaves = {},
-        leafFaceIndices = {},
+        leafFaces = {},
         nodes = {},
         lighting = {},
     }
