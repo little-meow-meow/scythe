@@ -99,6 +99,15 @@ local record BSPData
         areaIndex: integer
     end
 
+    interface BrushModel
+        boundingBoxMin: GVector
+        boundingBoxMax: GVector
+        origin: GVector
+        headNodeIndex: integer
+        firstFaceIndex: integer
+        faceCount: integer
+    end
+
     interface LumpHeader
         offset: integer
         length: integer
@@ -132,6 +141,7 @@ local record BSPData
     leafFaces: {integer: Face}
     clusterToLeafIndices: {integer: {integer}} -- subset is not zero-indexed!
     nodes: {integer: PartitionNode}
+    brushModels: {integer: BrushModel}
     lighting: {integer: ColorRGBExp32}
 end
 
@@ -159,6 +169,7 @@ function BSPData.new(): BSPData
         leafFaces = {},
         clusterToLeafIndices = {},
         nodes = {},
+        brushModels = {},
         lighting = {},
     }
     return setmetatable(data, {__index = BSPData})

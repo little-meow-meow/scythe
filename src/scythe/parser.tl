@@ -361,6 +361,21 @@ local function parseVisibilityNodes(reader: ByteReader, data: BSPData)
     end
 end
 
+local function parseBrushModels(reader: ByteReader, data: BSPData)
+    local header = data.header.lumpHeaders[LUMP_MODELS]
+    reader:seek(header.offset)
+    for i = 0, math.floor(header.length / 48) - 1 do
+        data.brushModels[i] = {
+            boundingBoxMin = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE()),
+            boundingBoxMax = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE()),
+            origin = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE()),
+            headNodeIndex = reader:readS32LE(),
+            firstFaceIndex = reader:readS32LE(),
+            faceCount = reader:readS32LE(),
+        }
+    end
+end
+
 function BSPParser.parse(reader: ByteReader): BSPData
     local data = BSPData.new()
 
@@ -394,6 +409,7 @@ function BSPParser.parse(reader: ByteReader): BSPData
     parseVisibility(reader, data)
     parseVisibilityLeaves(reader, data)
     parseVisibilityNodes(reader, data)
+    parseBrushModels(reader, data)
 
     return data
 end
