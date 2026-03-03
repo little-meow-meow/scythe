@@ -149,19 +149,20 @@ local function parseTextures(reader: ByteReader, data: BSPData)
         stringIndices[i] = reader:readU32LE()
     end
 
-    local strings = {}
-    header = data.header.lumpHeaders[LUMP_TEXDATA_STRING_DATA]
-    reader:seek(header.offset)
-    for i = 0, #stringIndices - 1 do
-        strings[i] = reader:readString()
+    local function readString(stringIndex: integer): string
+        local previousOffset = reader:tell()
+        reader:seek(stringIndices[stringIndex] + data.header.lumpHeaders[LUMP_TEXDATA_STRING_DATA].offset)
+        local result = reader:readString()
+        reader:seek(previousOffset)
+        return result
     end
 
     header = data.header.lumpHeaders[LUMP_TEXDATA]
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 32) - 1 do
         data.textures[i] = {
-            name = strings[i],
             reflectivity = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE()),
+            name = readString(reader:readS32LE()),
             width = reader:readS32LE(),
             height = reader:readS32LE(),
             viewWidth = reader:readS32LE(),
