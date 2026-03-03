@@ -13,10 +13,10 @@ local SURFDRAW_TANGENTSPACE = 0x0040
 
 local interface Renderable
     interface Vertex
-        position: Types.Vector3
-        normal: Types.Vector3
-        tangentS: Types.Vector3 | nil
-        tangentT: Types.Vector3 | nil
+        position: GVector
+        normal: GVector
+        tangentS: GVector | nil
+        tangentT: GVector | nil
         color: Types.ColorRGBA | nil
         baseTextureU: number | nil
         baseTextureV: number | nil
@@ -63,7 +63,7 @@ local function assemble(vertices: {Renderable.Vertex}, primitiveType: number, pr
 
             local tangentS = vertex.tangentS
             local tangentT = vertex.tangentT
-            if tangentS is Types.Vector3 and tangentT is Types.Vector3 then
+            if tangentS is GVector and tangentT is GVector then
                 mesh.TangentS(tangentS.x, tangentS.y, tangentS.z)
                 mesh.TangentT(tangentT.x, tangentT.y, tangentT.z)
             end
@@ -158,8 +158,8 @@ local function buildBrushFace(face: BSPData.Face, bspData: BSPData): Renderable
 
             tangentS:Mul(negateTangentS as number)
 
-            vertex.tangentS = tangentS as Types.Vector3
-            vertex.tangentT = tangentT as Types.Vector3
+            vertex.tangentS = tangentS
+            vertex.tangentT = tangentT
         end
 
         -- TODO: Needs to know lightmap texture coordinates to fill these out. This can be deferred but it will require rebuilding the mesh.

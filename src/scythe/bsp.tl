@@ -1,26 +1,25 @@
 (makeRequireCompat or function() end)()
 
 local type Types = require("scythe.types")
-local type Vector3 = Types.Vector3
 local type Vector4 = Types.Vector4
 local type ColorRGBExp32 = Types.ColorRGBExp32
 
 local record BSPData
     -- https://developer.valvesoftware.com/wiki/BSP_(Source)#Plane
     interface Plane
-        normal: Vector3
+        normal: GVector
         distance: number
         type: number
     end
 
     interface DisplacementInfo
         interface DisplacementVertex
-            position: Vector3
+            position: GVector
             distance: number
             alpha: number
         end
 
-        startPosition: Vector3
+        startPosition: GVector
         vertexOffset: integer
         triangleOffset: integer
         power: integer
@@ -35,7 +34,7 @@ local record BSPData
 
     -- https://developer.valvesoftware.com/wiki/BSP_(Source)#Texdata
     interface TextureData
-        reflectivity: Vector3
+        reflectivity: GVector
         name: string
         width: integer
         height: integer
@@ -57,7 +56,7 @@ local record BSPData
         onNode: boolean
         firstEdgeIndex: integer
         edgeCount: integer
-        edges: {integer: {Vector3, Vector3}}
+        edges: {integer: {GVector, GVector}}
         texture: TextureInfo
         displacementInfoIndex: integer
         displacementInfo: DisplacementInfo | nil
@@ -81,8 +80,8 @@ local record BSPData
         areaIndex: integer
         -- LEAF_FLAGS_
         flags: integer
-        boundingBoxMin: Vector3
-        boundingBoxMax: Vector3
+        boundingBoxMin: GVector
+        boundingBoxMax: GVector
         leafFaceIndexOffset: integer
         leafFaceCount: integer
         leafBrushIndexOffset: integer
@@ -93,8 +92,8 @@ local record BSPData
     interface PartitionNode
         plane: Plane
         childIndices: {integer, integer}
-        boundingBoxMin: Vector3
-        boundingBoxMax: Vector3
+        boundingBoxMin: GVector
+        boundingBoxMax: GVector
         faceIndexOffset: integer
         faceCount: integer
         areaIndex: integer
@@ -116,12 +115,12 @@ local record BSPData
     header: Header
 
     planes: {integer: Plane}
-    vertices: {integer: Vector3}
-    edges: {integer: {Vector3, Vector3}}
+    vertices: {integer: GVector}
+    edges: {integer: {GVector, GVector}}
     edgeVertexIndices: {integer: {integer, integer}}
-    surfaceEdges: {integer: {Vector3, Vector3}}
+    surfaceEdges: {integer: {GVector, GVector}}
     vertexIndices: {integer: integer}
-    vertexNormals: {integer: Vector3}
+    vertexNormals: {integer: GVector}
     vertexNormalIndices: {integer: integer}
     displacementInfos: {integer: DisplacementInfo}
     textures: {integer: TextureData}

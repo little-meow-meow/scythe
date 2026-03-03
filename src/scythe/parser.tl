@@ -40,11 +40,7 @@ local function parsePlanes(reader: ByteReader, data: BSPData)
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 20) - 1 do
         data.planes[i] = {
-            normal = {
-                x = reader:readSingleLE(),
-                y = reader:readSingleLE(),
-                z = reader:readSingleLE()
-            },
+            normal = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE()),
             distance = reader:readSingleLE(),
             type = reader:readS32LE(),
         }
@@ -55,11 +51,7 @@ local function parseVertices(reader: ByteReader, data: BSPData)
     local header = data.header.lumpHeaders[LUMP_VERTEXES]
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 12) - 1 do
-        data.vertices[i] = {
-            x = reader:readSingleLE(),
-            y = reader:readSingleLE(),
-            z = reader:readSingleLE(),
-        }
+        data.vertices[i] = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE())
     end
 end
 
@@ -102,11 +94,7 @@ local function parseVertexNormals(reader: ByteReader, data: BSPData)
     local header = data.header.lumpHeaders[LUMP_VERTNORMALS]
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 12) - 1 do
-        data.vertexNormals[i] = {
-            x = reader:readSingleLE(),
-            y = reader:readSingleLE(),
-            z = reader:readSingleLE(),
-        }
+        data.vertexNormals[i] = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE())
     end
 
     header = data.header.lumpHeaders[LUMP_VERTNORMALINDICES]
@@ -122,11 +110,7 @@ local function parseDisplacements(reader: ByteReader, data: BSPData)
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 20) - 1 do
         displacementVertices[i] = {
-            position = {
-                x = reader:readSingleLE(),
-                y = reader:readSingleLE(),
-                z = reader:readSingleLE(),
-            },
+            position = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE()),
             distance = reader:readSingleLE(),
             alpha = reader:readSingleLE(),
         }
@@ -137,11 +121,7 @@ local function parseDisplacements(reader: ByteReader, data: BSPData)
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 176) - 1 do
         displacementInfos[i] = {
-            startPosition = {
-                x = reader:readSingleLE(),
-                y = reader:readSingleLE(),
-                z = reader:readSingleLE(),
-            },
+            startPosition = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE()),
             vertexOffset = reader:readU32LE(),
             triangleOffset = reader:readU32LE(),
             power = reader:readU32LE(),
@@ -180,12 +160,8 @@ local function parseTextures(reader: ByteReader, data: BSPData)
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 32) - 1 do
         data.textures[i] = {
-            reflectivity = {
-                x = reader:readSingleLE(),
-                y = reader:readSingleLE(),
-                z = reader:readSingleLE(),
-            },
             name = strings[i],
+            reflectivity = Vector(reader:readSingleLE(), reader:readSingleLE(), reader:readSingleLE()),
             width = reader:readS32LE(),
             height = reader:readS32LE(),
             viewWidth = reader:readS32LE(),
@@ -291,16 +267,8 @@ local function parseVisibilityLeaves(reader: ByteReader, data: BSPData)
         local packed = reader:readS16LE()
         leaf.areaIndex = bit.rshift(packed, 7) as integer
         leaf.flags = bit.band(packed, 0x1FF) as integer
-        leaf.boundingBoxMin = {
-            x = reader:readS16LE(),
-            y = reader:readS16LE(),
-            z = reader:readS16LE(),
-        }
-        leaf.boundingBoxMax = {
-            x = reader:readS16LE(),
-            y = reader:readS16LE(),
-            z = reader:readS16LE(),
-        }
+        leaf.boundingBoxMin = Vector(reader:readS16LE(), reader:readS16LE(), reader:readS16LE())
+        leaf.boundingBoxMax = Vector(reader:readS16LE(), reader:readS16LE(), reader:readS16LE())
         leaf.leafFaceIndexOffset = reader:readU16LE()
         leaf.leafFaceCount = reader:readU16LE()
         leaf.leafBrushIndexOffset = reader:readU16LE()
@@ -327,16 +295,8 @@ local function parseVisibilityNodes(reader: ByteReader, data: BSPData)
         data.nodes[i] = {
             plane = data.planes[reader:readS32LE()],
             childIndices = {reader:readS32LE(), reader:readS32LE()},
-            boundingBoxMin = {
-                x = reader:readS16LE(),
-                y = reader:readS16LE(),
-                z = reader:readS16LE(),
-            },
-            boundingBoxMax = {
-                x = reader:readS16LE(),
-                y = reader:readS16LE(),
-                z = reader:readS16LE(),
-            },
+            boundingBoxMin = Vector(reader:readS16LE(), reader:readS16LE(), reader:readS16LE()),
+            boundingBoxMax = Vector(reader:readS16LE(), reader:readS16LE(), reader:readS16LE()),
             faceIndexOffset = reader:readU16LE(),
             faceCount = reader:readU16LE(),
             areaIndex = reader:readS16LE(),
