@@ -1,7 +1,8 @@
 (makeRequireCompat or function() end)()
 
 local type Types = require("scythe.types")
-local BSPData = require("scythe.bsp")
+local type BSPData = require("scythe.bsp")
+local type BSPOcclusion = require("scythe.occlusion")
 
 local SURFDRAW_NOLIGHT      = 0x0001
 local SURFDRAW_NODE         = 0x0002
@@ -26,27 +27,31 @@ local interface Renderable
 
     mesh: GIMesh
     material: GIMaterial
+    texture: BSPData.TextureInfo
     lightmapTexture: GITexture | nil
 end
 
 local record BSPRenderer
     bspData: BSPData
+    bspOcclusion: BSPOcclusion
     renderables: {Renderable}
     faceToRenderableMap: {BSPData.Face: Renderable}
 
     buildRenderables: function(self: BSPRenderer)
 end
 
-function BSPRenderer.new(bspData: BSPData): BSPRenderer
+function BSPRenderer.new(bspData: BSPData, bspOcclusion: BSPOcclusion): BSPRenderer
     local renderer: BSPRenderer = setmetatable({}, {__index = BSPRenderer})
     renderer.bspData = bspData
+    renderer.bspOcclusion = bspOcclusion
     renderer.renderables = {}
     renderer.faceToRenderableMap = {}
     renderer:buildRenderables()
     return renderer
 end
 
-local function assemble(vertices: {Renderable.Vertex}, primitiveType: number, primitiveCount: number, material: GIMaterial): Renderable
+local function assemble(vertices: {Renderable.Vertex}, primitiveType: number, primitiveCount: number, face: BSPData.Face): Renderable
+    local material = Material(face.texture.data.name)
     local _mesh = Mesh(material)
     mesh.Begin(_mesh, primitiveType, primitiveCount)
         for _, vertex in ipairs(vertices) do
@@ -83,6 +88,7 @@ local function assemble(vertices: {Renderable.Vertex}, primitiveType: number, pr
     return {
         mesh = _mesh,
         material = material,
+        texture = face.texture,
     }
 end
 
@@ -127,8 +133,7 @@ local function buildDisplacement(face: BSPData.Face, bspData: BSPData): Renderab
     -- TODO: Displacement vertex lightmap coordinates
     -- TODO: Fan triangles
 
-    local material = Material(face.texture.data.name)
-    return assemble(vertices, MATERIAL_TRIANGLES, #vertices / 3, material)
+    return assemble(vertices, MATERIAL_TRIANGLES, #vertices / 3, face)
 end
 
 local function buildBrushFace(face: BSPData.Face, bspData: BSPData): Renderable
@@ -176,8 +181,8 @@ local function buildBrushFace(face: BSPData.Face, bspData: BSPData): Renderable
         table.insert(vertices, vertex)
     end
 
-    local material = Material(face.texture.data.name)
-    return assemble(vertices, MATERIAL_POLYGON, face.edgeCount, material)
+
+    return assemble(vertices, MATERIAL_POLYGON, face.edgeCount, face)
 end
 
 function BSPRenderer:buildRenderables()
@@ -198,15 +203,23 @@ function BSPRenderer:buildRenderables()
 end
 
 local MAT_WIREFRAME = Material("editor/wireframe")
+function BSPRenderer:renderRenderable(renderable: Renderable)
+    if bit.band(renderable.texture.flags, SURF_SKY + SURF_TRANS) ~= 0 then
+        return
+    end
+
+    render.SetMaterial(renderable.material or MAT_WIREFRAME)
+    renderable.mesh:Draw()
+end
 
 function BSPRenderer:drawCluster(clusterIndex: integer)
-    for _, leafIndex in ipairs(self.bspData.clusterToLeafIndices[clusterIndex]) do
+    local leaves = self.bspData.clusterToLeafIndices[clusterIndex]
+    for _, leafIndex in ipairs(leaves) do
         local leaf = self.bspData.leaves[leafIndex]
         for i = 0, leaf.leafFaceCount - 1 do
             local face = self.bspData.leafFaces[leaf.leafFaceIndexOffset + i]
             local renderable = self.faceToRenderableMap[face]
-            render.SetMaterial(renderable.material or MAT_WIREFRAME)
-            renderable.mesh:Draw()
+            self:renderRenderable(renderable)
         end
     end
 end
@@ -221,8 +234,28 @@ function BSPRenderer:drawClusters(clusterIndex: integer)
     end
 end
 
+function BSPRenderer:drawAll()
+    for _, renderable in ipairs(self.renderables) do
+        self:renderRenderable(renderable)
+    end
+end
+
+local pvsEyePos: GVector = nil
+local r_lockpvs = GetConVar("r_lockpvs")
 function BSPRenderer:draw()
-    self:drawClusters(1)
+    if not r_lockpvs:GetBool() then
+        pvsEyePos = EyePos()
+    end
+    if not pvsEyePos then return end
+
+    local leafIndex = self.bspOcclusion:getLeafIndexForPoint(pvsEyePos, self.bspData.brushModels[0].headNodeIndex)
+    local clusterIndex = self.bspData.leaves[leafIndex].clusterIndex
+
+    if clusterIndex == -1 then
+        self:drawAll()
+    else
+        self:drawClusters(clusterIndex)
+    end
 end
 
 return BSPRenderer

@@ -38,6 +38,7 @@ include("bottle/bottle_sh.lua")
 
 AddCSLuaFile("scythe/bsp.lua")
 AddCSLuaFile("scythe/renderer.lua")
+AddCSLuaFile("scythe/occlusion.lua")
 AddCSLuaFile("scythe/lightmaps.lua")
 AddCSLuaFile("scythe/parser.lua")
 AddCSLuaFile("scythe/types.lua")

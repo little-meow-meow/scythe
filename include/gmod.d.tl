@@ -20884,6 +20884,8 @@ global interface GVector
     --- Sets x, y and z to 0.
     Zero: function(self)
 
+    metamethod __index: function(self, value: number): number
+
     x: number
     y: number
     z: number
