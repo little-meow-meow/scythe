@@ -1,1 +1,4 @@
 lua/
+src/test/construct_bsp.tl
+src/test/construct_pak.tl
+src/test/gm_construct.bsp
