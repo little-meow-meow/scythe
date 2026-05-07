@@ -99,6 +99,25 @@ local record BSPData
         areaIndex: integer
     end
 
+    interface BrushSide
+        planeIndex: integer
+        textureInfoIndex: integer
+        displacementInfoIndex: integer
+        bevel: boolean
+
+        plane: Plane
+        texture: TextureInfo
+        displacementInfo: DisplacementInfo
+    end
+
+    interface Brush
+        firstSideIndex: integer
+        sideCount: integer
+        contents: E_CONTENTS
+
+        sides: {BrushSide}
+    end
+
     interface BrushModel
         boundingBoxMin: GVector
         boundingBoxMax: GVector
@@ -143,6 +162,9 @@ local record BSPData
     nodes: {integer: PartitionNode}
     brushModels: {integer: BrushModel}
     lighting: {integer: ColorRGBExp32}
+    brushSides: {integer: BrushSide}
+    brushes: {integer: Brush}
+    leafBrushes: {integer: integer}
 end
 
 function BSPData.new(): BSPData
@@ -171,8 +193,24 @@ function BSPData.new(): BSPData
         nodes = {},
         brushModels = {},
         lighting = {},
+        brushSides = {},
+        brushes = {},
+        leafBrushes = {},
     }
     return setmetatable(data, {__index = BSPData})
+end
+
+function BSPData:brushesInLeaf(leafIndex: integer): {BSPData.Brush}
+    local leaf = self.leaves[leafIndex]
+    local brushes = {}
+    for i = 0, leaf.leafBrushCount - 1 do
+        table.insert(brushes, self.brushes[self.leafBrushes[leaf.leafBrushIndexOffset + i]])
+    end
+    return brushes
+end
+
+function BSPData:displacementsInLeaf(leafIndex: integer): table
+    error("todo")
 end
 
 return BSPData

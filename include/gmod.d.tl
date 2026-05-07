@@ -32461,7 +32461,7 @@ global record S_HTTPRequest
 
 end
 --- Table used by util.TraceHull.
-global record S_HullTrace
+global interface S_HullTrace
     --- The start position of the trace
     start: GVector
 
@@ -34324,7 +34324,7 @@ global record S_ToScreenData
 
 end
 --- Table structure used for util.TraceLine.
-global record S_Trace
+global interface S_Trace
     --- The start position of the trace
     start: GVector
 
@@ -34360,7 +34360,7 @@ global record S_Trace
 end
 --- Table structure used as trace result. Default values are when the trace hits nothing.
 --- See util.TraceLine and util.TraceHull.
-global record S_TraceResult
+global interface S_TraceResult
     --- The entity hit by the trace.
     Entity: GEntity
 

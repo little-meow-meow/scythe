@@ -109,17 +109,40 @@ function ENT:TestCollision( startpos, delta, isbox, extents, mask )
     if not Scythe then return end
     if not Scythe.loadedMaps[1] then return end
 
-    -- TODO: hull collisions
-    -- if isbox then return end
+    -- if not isbox then return end
 
     local map = Scythe.loadedMaps[1]
     local trace = {
         start = startpos,
         endpos = startpos + delta,
         mask = mask,
-        mins = -extents,
-        maxs = extents,
+        -- TODO: Uh oh, I don't think we have access to the real mins/maxs of the trace!
+        mins = isbox and -extents or nil,
+        maxs = isbox and extents or nil,
+        whitelist = true, -- DEBUG!
     }
 
-    return isbox and map.bspPhys:traceHull(trace) or map.bspPhys:traceLine(trace)
+    -- if extents.x == 0 and extents.y == 0 then return end
+
+    -- if not isBox and extents and extents.x == 8 then
+    --     print("trace")
+    -- end
+
+    -- local result = map.bspPhys:traceHull(trace)
+    -- print("custom:")
+    -- PrintTable(result)
+    -- print("extents:", extents)
+    -- print("mask:", mask)
+    -- print()
+
+    -- print("native:")
+    -- PrintTable(util.TraceHull(trace))
+    -- print("start:", startpos)
+    -- print()
+    -- print()
+    -- print()
+
+    -- return result
+
+    return map.bspPhys:traceHull(trace)
 end

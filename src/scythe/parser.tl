@@ -21,6 +21,9 @@ local LUMP_EDGES = 12
 local LUMP_SURFEDGES = 13
 local LUMP_MODELS = 14
 local LUMP_LEAFFACES = 16
+local LUMP_LEAFBRUSHES = 17
+local LUMP_BRUSHES = 18
+local LUMP_BRUSHSIDES = 19
 local LUMP_DISPINFO = 26
 local LUMP_ORIGINALFACES = 27
 local LUMP_PHYSDISP = 28
@@ -376,6 +379,50 @@ local function parseBrushModels(reader: ByteReader, data: BSPData)
     end
 end
 
+local function parseBrushSides(reader: ByteReader, data: BSPData)
+    local header = data.header.lumpHeaders[LUMP_BRUSHSIDES]
+    reader:seek(header.offset)
+    for i = 0, math.floor(header.length / 8) - 1 do
+        local side: BSPData.BrushSide = {
+            planeIndex = reader:readU16LE(),
+            textureInfoIndex = reader:readS16LE(),
+            displacementInfoIndex = reader:readS16LE(),
+            bevel = reader:readS16LE() == 1,
+        }
+        side.plane = data.planes[side.planeIndex]
+        side.texture = data.textureInfos[side.textureInfoIndex]
+        side.displacementInfo = data.displacementInfos[side.displacementInfoIndex]
+
+        data.brushSides[i] = side
+    end
+end
+
+local function parseBrushes(reader: ByteReader, data: BSPData)
+    local header = data.header.lumpHeaders[LUMP_BRUSHES]
+    reader:seek(header.offset)
+    for i = 0, math.floor(header.length / 12) - 1 do
+        local brush: BSPData.Brush = {
+            firstSideIndex = reader:readS32LE(),
+            sideCount = reader:readS32LE(),
+            contents = reader:readS32LE(),
+        }
+        brush.sides = {}
+        for j = 0, brush.sideCount - 1 do
+            table.insert(brush.sides, data.brushSides[brush.firstSideIndex + j])
+        end
+
+        data.brushes[i] = brush
+    end
+end
+
+local function parseLeafBrushes(reader: ByteReader, data: BSPData)
+    local header = data.header.lumpHeaders[LUMP_LEAFBRUSHES]
+    reader:seek(header.offset)
+    for i = 0, math.floor(header.length / 2) - 1 do
+        data.leafBrushes[i] = reader:readU16LE()
+    end
+end
+
 function BSPParser.parse(reader: ByteReader): BSPData
     local data = BSPData.new()
 
@@ -410,6 +457,9 @@ function BSPParser.parse(reader: ByteReader): BSPData
     parseVisibilityLeaves(reader, data)
     parseVisibilityNodes(reader, data)
     parseBrushModels(reader, data)
+    parseBrushSides(reader, data)
+    parseBrushes(reader, data)
+    parseLeafBrushes(reader, data)
 
     return data
 end
