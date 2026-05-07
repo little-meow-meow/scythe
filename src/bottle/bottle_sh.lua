@@ -492,8 +492,8 @@ local function buildMap(map, meshes)
         local lightmapData = {
             width = lightmapLuxelWidth,
             height = lightmapLuxelHeight,
-            pow2Width = math.pow(2, math.ceil(math.log(lightmapLuxelWidth)/math.log(2))),
-            pow2Height = math.pow(2, math.ceil(math.log(lightmapLuxelHeight)/math.log(2))),
+            pow2Width = 256, --math.pow(2, math.ceil(math.log(lightmapLuxelWidth)/math.log(2))),
+            pow2Height = 256, --math.pow(2, math.ceil(math.log(lightmapLuxelHeight)/math.log(2))),
             styles = lightStyles,
             hasBumpmapSamples = hasBumpmapSamples,
             sampleOffset = face.lightofs / 4,
@@ -507,6 +507,8 @@ local function buildMap(map, meshes)
         if bit.band( texinfo.flags, SURF_SKY2D + SURF_SKY ) > 0 then
             goto _continue
         end
+
+        if texinfo.texdata.name == "TOOLS/TOOLSTRIGGER" then goto _continue end
 
         -- workaround for janky color room walls, for testing
         -- bmodel surfaces are stored in the world at the origin
@@ -796,6 +798,7 @@ local function mountMapPak(mapName)
 
     game.MountGMA("data/" .. gmaPath)
 end
+mountMapPak("maps/rp_downtown_v2.bsp")
 
 local meshes = {}
 
@@ -894,7 +897,8 @@ local function loadMapFromWorkshop(workshopId, mapName)
 end
 
 if true then
-    loadMap("maps/gm_construct.bsp")
+    -- loadMap("maps/gm_construct.bsp")
+    -- loadMap("maps/gm_flatgrass.bsp")
     -- loadMap("maps/rp_downtown_v2.bsp")
     -- loadMapFromWorkshop("326332456", "maps/gm_fork.bsp")
     -- loadMapFromWorkshop("105982362", "maps/gm_bigcity.bsp")
@@ -915,54 +919,57 @@ if true then
     -- loadMapFromWorkshop("153740562") -- cs_suburb
     -- loadMapFromWorkshop("2886597152") -- minecraft abandoned cave
     -- loadMapFromWorkshop("2174226635") -- desert bus deluxe
+
+    -- loadMap("maps/dm_necessity.bsp")
 end
 
-if CLIENT then
+-- if CLIENT then
 
-    local TEX_WHITE = GetRenderTarget("TEX_WHITE", 4, 4)
-    render.PushRenderTarget(TEX_WHITE)
-    cam.Start2D()
-    draw.NoTexture()
-    surface.SetDrawColor( 0x7F, 0x7F, 0x7F, 0xFF )
-    surface.DrawRect( 0, 0, 4, 4 )
-    cam.End2D()
-    render.PopRenderTarget()
+--     local TEX_WHITE = GetRenderTarget("TEX_WHITE", 4, 4)
+--     render.PushRenderTarget(TEX_WHITE)
+--     cam.Start2D()
+--     draw.NoTexture()
+--     surface.SetDrawColor( 0x7F, 0x7F, 0x7F, 0xFF )
+--     surface.DrawRect( 0, 0, 4, 4 )
+--     cam.End2D()
+--     render.PopRenderTarget()
 
-    -- local TEX_WHITE = Material( "vgui/white" ):GetTexture("$basetexture")
-    local matWireframe = Material( "editor/wireframe" ) -- The material (a wireframe)
-    hook.Add( "PostDrawOpaqueRenderables", "IMeshTest", function()
-        -- render.SuppressEngineLighting(true)
-        for _, meshEntry in pairs(meshes) do
-            render.SetMaterial( meshEntry.material )
-            -- render.SetMaterial( matWireframe )
-            render.SetLightmapTexture(meshEntry.lightmap and meshEntry.lightmap or TEX_WHITE)
+--     -- local TEX_WHITE = Material( "vgui/white" ):GetTexture("$basetexture")
+--     local matWireframe = Material( "editor/wireframe" ) -- The material (a wireframe)
+--     hook.Add( "PostDrawOpaqueRenderables", "IMeshTest", function( isDrawingDepth )
+--         if not _G.DRAWMAP then return end
+--         -- render.SuppressEngineLighting(true)
+--         for _, meshEntry in pairs(meshes) do
+--             render.SetMaterial( meshEntry.material )
+--             -- render.SetMaterial( matWireframe )
+--             render.SetLightmapTexture(meshEntry.lightmap and meshEntry.lightmap or TEX_WHITE)
 
-            meshEntry.mesh:Draw()
+--             meshEntry.mesh:Draw()
 
-            render.RenderFlashlights( function()
-                meshEntry.mesh:Draw()
-            end )
-        end
-        -- render.SuppressEngineLighting(false)
-    end )
+--             render.RenderFlashlights( function()
+--                 meshEntry.mesh:Draw()
+--             end )
+--         end
+--         -- render.SuppressEngineLighting(false)
+--     end )
 
-end
+-- end
 
 
-if SERVER then
+-- if SERVER then
 
-    _G.worldspawnPhysics = _G.worldspawnPhysics
-    local function RecreateWorldCollision()
-        if IsValid(_G.worldspawnPhysics) then
-            _G.worldspawnPhysics:Remove()
-        end
+--     _G.worldspawnPhysics = _G.worldspawnPhysics
+--     local function RecreateWorldCollision()
+--         if IsValid(_G.worldspawnPhysics) then
+--             _G.worldspawnPhysics:Remove()
+--         end
 
-        _G.worldspawnPhysics = ents.Create("virtual_worldspawn")
-        _G.worldspawnPhysics:SetPos(Vector(0, 0, 0))
-        _G.worldspawnPhysics:Spawn()
-    end
+--         _G.worldspawnPhysics = ents.Create("virtual_worldspawn")
+--         _G.worldspawnPhysics:SetPos(Vector(0, 0, 0))
+--         _G.worldspawnPhysics:Spawn()
+--     end
 
-    hook.Add( "InitPostEntity", "DynamicMapRecreateWorldCollision", RecreateWorldCollision )
-    hook.Add( "OnReloaded", "DynamicMapRecreateWorldCollision", RecreateWorldCollision )
+--     hook.Add( "InitPostEntity", "DynamicMapRecreateWorldCollision", RecreateWorldCollision )
+--     hook.Add( "OnReloaded", "DynamicMapRecreateWorldCollision", RecreateWorldCollision )
 
-end
+-- end
