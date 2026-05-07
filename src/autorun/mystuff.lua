@@ -43,5 +43,5 @@ AddCSLuaFile("scythe/lightmaps.lua")
 AddCSLuaFile("scythe/parser.lua")
 AddCSLuaFile("scythe/types.lua")
 AddCSLuaFile("scythe/scythe.lua")
-include("scythe/scythe.lua")
+Scythe = include("scythe/scythe.lua")
 

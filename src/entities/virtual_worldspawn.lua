@@ -90,20 +90,36 @@ end
 
 function ENT:TestCollision( startpos, delta, isbox, extents, mask )
 
-    local endPos = startpos + delta
-    if endPos.z <= -136 and delta.z == -3 then
-        local newHitPos = Vector( endPos.x, endPos.y, -100 )
-        return {
-            HitPos = newHitPos,
-            Fraction = 0.9, -- anything but 1
-            Normal = Vector( 0, 0, 0.8 ),
+    -- local endPos = startpos + delta
+    -- if endPos.z <= -136 and delta.z == -3 then
+    --     local newHitPos = Vector( endPos.x, endPos.y, -100 )
+    --     return {
+    --         HitPos = newHitPos,
+    --         Fraction = 0.9, -- anything but 1
+    --         Normal = Vector( 0, 0, 0.8 ),
 
-            Hit = true,
-            HitWorld = true,
-            Entity = self,
-            Contents = CONTENTS_SOLID,
-            SurfaceFlags = SURF_SKY,
-        }
-    end
+    --         Hit = true,
+    --         HitWorld = true,
+    --         Entity = self,
+    --         Contents = CONTENTS_SOLID,
+    --         SurfaceFlags = SURF_SKY,
+    --     }
+    -- end
 
+    if not Scythe then return end
+    if not Scythe.loadedMaps[1] then return end
+
+    -- TODO: hull collisions
+    -- if isbox then return end
+
+    local map = Scythe.loadedMaps[1]
+    local trace = {
+        start = startpos,
+        endpos = startpos + delta,
+        mask = mask,
+        mins = -extents,
+        maxs = extents,
+    }
+
+    return isbox and map.bspPhys:traceHull(trace) or map.bspPhys:traceLine(trace)
 end

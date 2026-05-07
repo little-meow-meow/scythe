@@ -7,6 +7,7 @@ local type BSPData = require("scythe.bsp")
 local BSPParser = require("scythe.parser")
 local BSPRenderer = require("scythe.renderer")
 local BSPOcclusion = require("scythe.occlusion")
+local BSPPhys = require("scythe.phys")
 
 ----------
 
@@ -35,7 +36,7 @@ function Scythe.loadMap(mapName: string)--: Promise<Scythe.Map, string>
     print("Building renderables...")
     startTime = SysTime()
     local bspOcclusion = BSPOcclusion.new(bspData)
-    local renderer = BSPRenderer.new(bspData, bspOcclusion)
+    local renderer = CLIENT and BSPRenderer.new(bspData, bspOcclusion)
     print(string.format("Built renderables in %.2f seconds", SysTime() - startTime))
 
     local map = {
@@ -43,12 +44,15 @@ function Scythe.loadMap(mapName: string)--: Promise<Scythe.Map, string>
         origin = Vector(0, 0, 0) as Types.Vector3,
         bspData = bspData,
         bspOcclusion = bspOcclusion,
+        bspPhys = BSPPhys.new(bspData),
         renderer = renderer,
     }
     table.insert(Scythe.loadedMaps, map)
 end
 
 ----------
+
+Scythe.loadMap("maps/rp_downtown_v2.bsp")
 
 if CLIENT then
 
@@ -71,8 +75,6 @@ if CLIENT then
     --     local msg = string.format("Leaf: %10s Cluster: %10s", leafIndex, leaf.clusterIndex)
     --     draw.SimpleText(msg, "BudgetLabel", 20, 140, color_white as table, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP )
     -- end)
-
-    Scythe.loadMap("maps/rp_downtown_v2.bsp")
 
 end
 
