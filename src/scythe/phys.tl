@@ -89,12 +89,9 @@ function BSPPhys:CM_ClipBoxToBrush(traceInfo: TraceInfo, brush: BSPData.Brush)
     --     return
     -- end
 
-    -- print("trace c", brush.sideCount)
     if brush.sideCount <= 0 then
         return
     end
-
-    -- print("trace b", traceInfo)
 
     local p1 = traceInfo.input.start
     local p2 = traceInfo.input.endpos
@@ -259,8 +256,6 @@ function BSPPhys:CM_RecursiveHullCheckImpl(traceInfo: TraceInfo, nodeIndex: inte
     local t1: number = 0
     local t2: number = 0
     local offset: number = 0
-
-    -- print("trace g", traceInfo)
 
     -- Recurse through nodes to find relevant leaves
     while nodeIndex >= 0 do
