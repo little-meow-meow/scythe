@@ -9,6 +9,8 @@ local BSPRenderer = require("scythe.renderer")
 local BSPOcclusion = require("scythe.occlusion")
 local BSPPhys = require("scythe.phys")
 
+local Pak = require("scythe.pak_sh")
+
 ----------
 
 local record Scythe
@@ -32,6 +34,7 @@ function Scythe.loadMap(mapName: string)--: Promise<Scythe.Map, string>
     local bspData = BSPParser.parse(reader)
     print(string.format("Parsed %s in %.2f seconds", mapName, SysTime() - startTime))
 
+    Pak.mountMap(mapName)
 
     print("Building renderables...")
     startTime = SysTime()
@@ -77,17 +80,6 @@ if CLIENT then
     -- end)
 
 end
-
--- CLIENT:
--- PreDrawSkyBox (2d & 3d skybox)
--- PreDrawOpaqueRenderables (draw world)
--- PreDrawViewModel (ambient lighting)
--- ENTITY:RenderOverride (ambient lighting)
-
--- SERVER:
---
-
-----------
 
 ::_file_return::
 return Scythe
