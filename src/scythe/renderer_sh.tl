@@ -1,5 +1,3 @@
-(makeRequireCompat or function() end)()
-
 local type Types = require("scythe.types_sh")
 local type BSPData = require("scythe.bsp_sh")
 local type BSPOcclusion = require("scythe.occlusion_sh")

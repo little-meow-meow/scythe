@@ -1,3 +1,5 @@
+AddCSLuaFile()
+
 local function AddCSLuaFiles(dir)
     if not SERVER then return end
     local queue = { dir }
@@ -20,29 +22,35 @@ AddCSLuaFiles("scythe")
 
 ---------------------------------------
 
-local __require = _G.require
-local cache = {}
-function _G._compatRequire(path)
-    local luaPath = path:Replace(".", "/") .. ".lua"
-    local success, ret = pcall(function()
-        if not cache[luaPath] then
-           cache[luaPath] = { include(luaPath) }
+local Environment = {}
+
+--- Effectively a wrapper around `include` to make it more like standard Lua `require`
+--- @param path string File path to require
+local function evilRequire(path)
+    local func = CompileFile(path:Replace(".", "/") .. ".lua")
+    setfenv(func, Environment)
+    return func()
+end
+
+Environment.__require = require
+Environment.require = evilRequire
+
+setmetatable(Environment, {
+    __index = function(tbl, key)
+        local value = rawget(tbl, key)
+        if value ~= nil then
+            return value
         end
-        return cache[luaPath]
-    end)
+        return _G[key]
+    end,
+    __newindex = function(_, key, value)
+        _G[key] = value
+    end,
+})
 
-    if success then
-        return unpack( ret )
-    else
-        return __require(path)
-    end
-end
+print("oRequire:", require)
+print("hRequire:", evilRequire)
 
-function makeRequireCompat()
-    local oldEnv = getfenv(2)
-    local newEnv = setmetatable({}, {__index = oldEnv})
-    newEnv.require = _G._compatRequire
-    setfenv(2, newEnv)
-end
+print("require:", _G.require)
 
-Scythe = include("scythe/scythe_sh.lua")
+Scythe = evilRequire("scythe.scythe_sh")

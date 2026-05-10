@@ -1,5 +1,3 @@
-(makeRequireCompat or function() end)()
-
 local BSPData = require("scythe.bsp_sh")
 local ByteReader = require("scythe.lib.byte_reader_sh")
 local Floating = require("scythe.lib.floating_sh")

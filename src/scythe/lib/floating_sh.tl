@@ -1,5 +1,3 @@
-(makeRequireCompat or function() end)()
-
 local Bit = require("scythe.lib.bit_sh")
 local bit = Bit.bit
 

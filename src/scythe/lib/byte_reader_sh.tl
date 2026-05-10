@@ -1,5 +1,3 @@
-(makeRequireCompat or function() end)()
-
 local Floating = require("scythe.lib.floating_sh")
 
 local macroexp shl(value: integer, bits: integer): integer

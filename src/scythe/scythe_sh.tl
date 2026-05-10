@@ -1,5 +1,3 @@
-(makeRequireCompat or function() end)()
-
 local Promise = require("scythe.lib.deferred_sh")
 local ByteReader = require("scythe.lib.byte_reader_sh")
 local type Types = require("scythe.types_sh")

@@ -1,5 +1,3 @@
-(makeRequireCompat or function() end)()
-
 --- https://github.com/Facepunch/gmad/blob/master/include/AddonReader.h
 
 local ByteWriter = require("scythe.lib.byte_writer_sh")

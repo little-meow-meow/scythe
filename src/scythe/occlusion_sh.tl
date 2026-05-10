@@ -1,5 +1,3 @@
-(makeRequireCompat or function() end)()
-
 local type BSPData = require("scythe.bsp_sh")
 
 local record BSPOcclusion

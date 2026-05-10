@@ -1,7 +1,5 @@
 -- Translating this file to Teal is contingent on TL compiler update with `no-stdlib` option.
 
-(makeRequireCompat or function() end)()
-
 local LUMP_PAKFILE = 40
 local LUMP_HEADER_SIZE = 16
 

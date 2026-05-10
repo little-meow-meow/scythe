@@ -1,5 +1,3 @@
-(makeRequireCompat or function() end)()
-
 --- https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
 --- https://archive.ph/5y0w0
 --- https://en.wikipedia.org/wiki/ZIP_(file_format)
