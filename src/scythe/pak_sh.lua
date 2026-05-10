@@ -15,7 +15,7 @@ local function GetMapPakLump(reader)
         error("not a valve bsp file: " .. reader:read(4))
     end
 
-    reader:seek(LUMP_HEADER_SIZE * LUMP_PAKFILE)
+    reader:seek(8 + (LUMP_HEADER_SIZE * LUMP_PAKFILE))
 
     local offset = reader:readU32LE()
     local length = reader:readU32LE()
@@ -28,7 +28,7 @@ local function Pak2Gma(reader, mapPath, gmaPath)
     local zip = ZipFile.fromString(GetMapPakLump(reader))
 
     local builder = GMABuilder.new()
-    builder.name = "dyncache: " .. mapName
+    builder.name = "dyncache: " .. mapPath
 
     for index, name in ipairs(zip:getFileNames()) do
         if builder:isFileNameAllowed(name) then
