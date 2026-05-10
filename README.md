@@ -2,7 +2,8 @@
 
 Scythe is a dynamic map loader for Garry's Mod. Instead of depending on the Source engine, Scythe completely re-implements a massive chunk of the engine in pure Lua.
 
-`gallery`
+<img width="40%" height="40%" alt="image" src="https://github.com/user-attachments/assets/2aea3460-19d4-4505-b15d-c25a9c0390a3" />
+<img width="40%" height="40%" alt="image" src="https://github.com/user-attachments/assets/fa0cf31a-328b-427f-b684-e699027a060f" />
 
 ## How it Works
 Players load a bare bones `empty.bsp` map. This is what the engine operates on. From the Lua environment, Scythe kicks in and decodes the desired [BSP file](https://developer.valvesoftware.com/wiki/BSP_(Source)), doing things notionally similar to what the engine does.
