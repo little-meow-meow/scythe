@@ -1,4 +1,5 @@
 # Scythe
+[![Build & Test](https://github.com/little-meow-meow/scythe/actions/workflows/gluatest.yml/badge.svg)](https://github.com/little-meow-meow/scythe/actions/workflows/gluatest.yml)
 
 Scythe is a dynamic map loader for Garry's Mod. Instead of depending on the Source engine, Scythe completely re-implements a massive chunk of the engine in pure Lua.
 
