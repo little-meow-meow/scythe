@@ -36,21 +36,10 @@ Environment.__require = require
 Environment.require = evilRequire
 
 setmetatable(Environment, {
-    __index = function(tbl, key)
-        local value = rawget(tbl, key)
-        if value ~= nil then
-            return value
-        end
-        return _G[key]
-    end,
+    __index = _G,
     __newindex = function(_, key, value)
         _G[key] = value
     end,
 })
-
-print("oRequire:", require)
-print("hRequire:", evilRequire)
-
-print("require:", _G.require)
 
 Scythe = evilRequire("scythe.scythe_sh")
