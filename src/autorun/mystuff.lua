@@ -1,6 +1,3 @@
-
-require("niknaks")
-
 AddCSLuaFile("lib/bit.lua")
 AddCSLuaFile("lib/bitflag.lua")
 AddCSLuaFile("lib/floating.lua")
@@ -32,9 +29,6 @@ function makeRequireCompat()
     newEnv.require = _G._compatRequire
     setfenv(2, newEnv)
 end
-
-AddCSLuaFile("bottle/bottle_sh.lua")
-include("bottle/bottle_sh.lua")
 
 AddCSLuaFile("scythe/bsp.lua")
 AddCSLuaFile("scythe/renderer.lua")

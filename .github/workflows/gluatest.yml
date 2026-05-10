@@ -1,0 +1,64 @@
+name: Build & Test
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Lua
+        uses: luarocks/gh-actions-lua@master
+        with:
+          luaVersion: luajit
+
+      - name: Install LuaRocks
+        uses: luarocks/gh-actions-luarocks@master
+
+      - name: Checkout Cyan
+        # ideally pinned to a release but currently >0.4.1 does not exist yet
+        run: git clone https://github.com/teal-language/cyan $GITHUB_WORKSPACE/cyan && cd $GITHUB_WORKSPACE/cyan && git checkout f165e6c~1
+
+      - name: Compile Cyan
+        run: luarocks make --local
+        working-directory: ./cyan
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          path: scythe
+
+      - name: Build
+        run: ~/.luarocks/bin/cyan version && ~/.luarocks/bin/cyan build
+        working-directory: ./scythe
+
+      - name: Package build result
+        run: mkdir -p garrysmod/addons/project && mv lua garrysmod/addons/project/lua && tar -czf artifact.tar.gz garrysmod
+        working-directory: ./scythe
+
+      - name: Upload build result
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-result
+          path: ./scythe/artifact.tar.gz
+
+
+  test:
+    needs: build
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    with:
+      server-cfg: src/tests/scythe/test.cfg
+      gamemode: sandbox
+      map: gm_construct
+    #   custom-overrides: "$GITHUB_WORKSPACE/gmod_overrides"
+      download-artifact: build-result
+      logs-as-artifact: true
+
+      # Relative path to a text file with your dependencies
+      #  Example contents:
+      #   CFC-Servers/logger@lua
+      #   FPtje/DarkRP
+      #requirements: lua/tests/scythe/deps.txt
+
+      # Workshop collection ID
+      #collection: 1234
