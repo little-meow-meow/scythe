@@ -1,0 +1,31 @@
+- [x] Basic surface rendering
+- [x] Textured surfaces
+- [x] Pakfile mounting
+- [x] Potential visibility culling
+- [-] Displacement rendering
+- [ ] Rendering overhaul
+  - [ ] 2D/3D skybox rendering
+  - [ ] Translucent surfaces
+  - [ ] Reflective surfaces
+  - [ ] Ambient-lit entities
+  - [ ] Projected texture/shadow support
+  - [ ] HDR support
+- [ ] Trace physics
+  - [ ] World collisions
+  - [ ] Entity collisions
+- [ ] Lightmap rendering
+  - [ ] Fast lightmap calculation
+  - [ ] Light style support
+- [ ] Overlay rendering
+- [ ] Static prop loading
+- [ ] Entity loading
+- [ ] Area portal support
+- [ ] Frustum culling
+- [ ] Navmesh loading
+- [ ] Off-branch compatibility
+  - [ ] L4D
+  - [ ] L4D2
+  - [ ] Portal
+  - [ ] Portal 2
+  - [ ] CS:GO
+  - [ ] CS2
