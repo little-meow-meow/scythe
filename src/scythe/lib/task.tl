@@ -1,4 +1,4 @@
-local Promise = require("lib.deferred")
+local Promise = require("scythe.lib.deferred_sh")
 
 local record TaskPool
     executionQuota: number

@@ -1,6 +1,6 @@
 (makeRequireCompat or function() end)()
 
-local type Types = require("scythe.types")
+local type Types = require("scythe.types_sh")
 local type Vector4 = Types.Vector4
 local type ColorRGBExp32 = Types.ColorRGBExp32
 

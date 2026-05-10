@@ -1,8 +1,8 @@
 (makeRequireCompat or function() end)()
 
-local type Types = require("scythe.types")
-local type BSPData = require("scythe.bsp")
-local type BSPOcclusion = require("scythe.occlusion")
+local type Types = require("scythe.types_sh")
+local type BSPData = require("scythe.bsp_sh")
+local type BSPOcclusion = require("scythe.occlusion_sh")
 
 local SURFDRAW_NOLIGHT      = 0x0001
 local SURFDRAW_NODE         = 0x0002

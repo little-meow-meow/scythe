@@ -1,6 +1,6 @@
 (makeRequireCompat or function() end)()
 
-local _bit = require("lib.bit_sh")
+local _bit = require("scythe.lib.bit_sh")
 
 local band = _bit.bit.band
 local bor = _bit.bit.bor

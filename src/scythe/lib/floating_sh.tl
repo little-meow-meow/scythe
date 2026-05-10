@@ -1,6 +1,6 @@
 (makeRequireCompat or function() end)()
 
-local Bit = require("lib.bit_sh")
+local Bit = require("scythe.lib.bit_sh")
 local bit = Bit.bit
 
 local SINGLE_MANTISSA_BITS = 23

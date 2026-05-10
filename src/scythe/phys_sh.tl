@@ -1,7 +1,7 @@
 (makeRequireCompat or function() end)()
 
-local type BSPData = require("scythe.bsp")
-local TraceInfo = require("scythe.trace")
+local type BSPData = require("scythe.bsp_sh")
+local TraceInfo = require("scythe.trace_sh")
 
 local DIST_EPSILON = 0.03125
 

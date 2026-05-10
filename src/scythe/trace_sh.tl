@@ -1,5 +1,5 @@
 
-local type BSPData = require("scythe.bsp")
+local type BSPData = require("scythe.bsp_sh")
 
 local record TraceInfo
     input: S_HullTrace

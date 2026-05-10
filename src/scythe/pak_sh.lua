@@ -5,9 +5,9 @@
 local LUMP_PAKFILE = 40
 local LUMP_HEADER_SIZE = 16
 
-local ZipFile = require("lib.zip_sh")
-local ByteReader = require("lib.byte_reader_sh")
-local GMABuilder = require("lib.gma_builder")
+local ZipFile = require("scythe.lib.zip_sh")
+local ByteReader = require("scythe.lib.byte_reader_sh")
+local GMABuilder = require("scythe.lib.gma_builder_sh")
 
 local Pak = {}
 
