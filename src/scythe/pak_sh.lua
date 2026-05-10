@@ -24,7 +24,7 @@ local function GetMapPakLump(reader)
     return reader:read(length)
 end
 
-local function Pak2Gma(reader, gmaPath)
+local function Pak2Gma(reader, mapPath, gmaPath)
     local zip = ZipFile.fromString(GetMapPakLump(reader))
 
     local builder = GMABuilder.new()
@@ -53,7 +53,7 @@ function Pak.mountMap(mapPath, invalidateCache)
 
     if not file.Exists(gmaPath, "DATA") or invalidateCache then
         local reader = ByteReader.new(file.Read(mapPath, "GAME"))
-        Pak2Gma(reader, gmaPath)
+        Pak2Gma(reader, mapPath, gmaPath)
     end
 
     game.MountGMA("data/" .. gmaPath)
