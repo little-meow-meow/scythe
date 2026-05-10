@@ -18,6 +18,7 @@
   - [ ] Light style support
 - [ ] Overlay rendering
 - [ ] Static prop loading
+- [ ] Occlusion-based entity networking
 - [ ] Entity loading
 - [ ] Area portal support
 - [ ] Frustum culling
