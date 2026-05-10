@@ -1,9 +1,26 @@
-AddCSLuaFile("lib/bit.lua")
-AddCSLuaFile("lib/bitflag.lua")
-AddCSLuaFile("lib/floating.lua")
-AddCSLuaFile("lib/zip.lua")
-AddCSLuaFile("lib/byte_reader.lua")
-AddCSLuaFile("lib/deferred.lua")
+local function AddCSLuaFiles(dir)
+   if not SERVER then return end
+   local queue = { dir }
+   repeat
+      local _dir = table.remove(queue, 1)
+      local files
+      local dirs
+      files, dirs = file.Find(_dir .. "/*", "LUA")
+      for _, f in ipairs(files) do
+         local suffix = f:sub(-7)
+         if suffix == "_sh.lua" or suffix == "_cl.lua" then
+            AddCSLuaFile(_dir .. "/" .. f)
+         end
+      end
+      for _, d in ipairs(dirs) do
+         table.insert(queue, _dir .. "/" .. d)
+      end
+   until #queue <= 0
+end
+
+AddCSLuaFiles("scythe")
+
+---------------------------------------
 
 local __require = _G.require
 local cache = {}
@@ -30,12 +47,4 @@ function makeRequireCompat()
     setfenv(2, newEnv)
 end
 
-AddCSLuaFile("scythe/bsp.lua")
-AddCSLuaFile("scythe/renderer.lua")
-AddCSLuaFile("scythe/occlusion.lua")
-AddCSLuaFile("scythe/lightmaps.lua")
-AddCSLuaFile("scythe/parser.lua")
-AddCSLuaFile("scythe/types.lua")
-AddCSLuaFile("scythe/scythe.lua")
 Scythe = include("scythe/scythe.lua")
-

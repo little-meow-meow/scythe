@@ -2,7 +2,7 @@
 
 --- https://github.com/Facepunch/gmad/blob/master/include/AddonReader.h
 
-local ByteWriter = require("lib.byte_writer")
+local ByteWriter = require("lib.byte_writer_sh")
 
 local interface FileEntry
     name: string

@@ -1,8 +1,8 @@
 (makeRequireCompat or function() end)()
 
 local BSPData = require("scythe.bsp")
-local ByteReader = require("lib.byte_reader")
-local Floating = require("lib.floating")
+local ByteReader = require("lib.byte_reader_sh")
+local Floating = require("lib.floating_sh")
 
 local HEADER_LUMPS = 64
 

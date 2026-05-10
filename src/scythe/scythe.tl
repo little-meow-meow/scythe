@@ -1,7 +1,7 @@
 (makeRequireCompat or function() end)()
 
 local Promise = require("lib.deferred")
-local ByteReader = require("lib.byte_reader")
+local ByteReader = require("lib.byte_reader_sh")
 local type Types = require("scythe.types")
 local type BSPData = require("scythe.bsp")
 local BSPParser = require("scythe.parser")

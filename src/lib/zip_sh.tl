@@ -4,8 +4,8 @@
 --- https://archive.ph/5y0w0
 --- https://en.wikipedia.org/wiki/ZIP_(file_format)
 
-local ByteReader = require("lib.byte_reader")
-local Bitflag = require("lib.bitflag")
+local ByteReader = require("lib.byte_reader_sh")
+local Bitflag = require("lib.bitflag_sh")
 
 ---------------------------------------
 

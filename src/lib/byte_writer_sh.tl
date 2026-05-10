@@ -1,6 +1,6 @@
 (makeRequireCompat or function() end)()
 
-local Floating = require("lib.floating")
+local Floating = require("lib.floating_sh")
 
 local macroexp shl(value: integer, bits: integer): integer
     return value * math.pow(2, bits)
