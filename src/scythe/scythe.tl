@@ -52,7 +52,7 @@ end
 
 ----------
 
-Scythe.loadMap("maps/rp_downtown_v2.bsp")
+Scythe.loadMap("maps/gm_construct.bsp")
 
 if CLIENT then
 
