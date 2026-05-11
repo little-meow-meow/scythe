@@ -40,76 +40,9 @@ end
 function ENT:Draw()
 end
 
-local function FlagsToString( valueFlags )
-    local flags = {}
-
-    local function TestAndTrack( flagName )
-        local value = _G[flagName]
-        if value == nil then error("Invalid variable") end
-
-        if bit.band( valueFlags, value ) == value then
-            table.insert( flags, flagName )
-        end
-    end
-
-    -- TestAndTrack( "CONTENTS_EMPTY" )
-    TestAndTrack( "CONTENTS_SOLID" )
-    TestAndTrack( "CONTENTS_WINDOW" )
-    TestAndTrack( "CONTENTS_AUX" )
-    TestAndTrack( "CONTENTS_GRATE" )
-    TestAndTrack( "CONTENTS_SLIME" )
-    TestAndTrack( "CONTENTS_WATER" )
-    TestAndTrack( "CONTENTS_BLOCKLOS" )
-    TestAndTrack( "CONTENTS_OPAQUE" )
-    TestAndTrack( "CONTENTS_TESTFOGVOLUME" )
-    TestAndTrack( "CONTENTS_TEAM4" )
-    TestAndTrack( "CONTENTS_TEAM3" )
-    TestAndTrack( "CONTENTS_TEAM1" )
-    TestAndTrack( "CONTENTS_TEAM2" )
-    TestAndTrack( "CONTENTS_IGNORE_NODRAW_OPAQUE" )
-    TestAndTrack( "CONTENTS_MOVEABLE" )
-    TestAndTrack( "CONTENTS_AREAPORTAL" )
-    TestAndTrack( "CONTENTS_PLAYERCLIP" )
-    TestAndTrack( "CONTENTS_MONSTERCLIP" )
-    TestAndTrack( "CONTENTS_CURRENT_0" )
-    TestAndTrack( "CONTENTS_CURRENT_180" )
-    TestAndTrack( "CONTENTS_CURRENT_270" )
-    TestAndTrack( "CONTENTS_CURRENT_90" )
-    TestAndTrack( "CONTENTS_CURRENT_DOWN" )
-    TestAndTrack( "CONTENTS_CURRENT_UP" )
-    TestAndTrack( "CONTENTS_DEBRIS" )
-    TestAndTrack( "CONTENTS_DETAIL" )
-    TestAndTrack( "CONTENTS_HITBOX" )
-    TestAndTrack( "CONTENTS_LADDER" )
-    TestAndTrack( "CONTENTS_MONSTER" )
-    TestAndTrack( "CONTENTS_ORIGIN" )
-    TestAndTrack( "CONTENTS_TRANSLUCENT" )
-
-    return table.concat( flags, ", " )
-end
-
 function ENT:TestCollision( startpos, delta, isbox, extents, mask )
-
-    -- local endPos = startpos + delta
-    -- if endPos.z <= -136 and delta.z == -3 then
-    --     local newHitPos = Vector( endPos.x, endPos.y, -100 )
-    --     return {
-    --         HitPos = newHitPos,
-    --         Fraction = 0.9, -- anything but 1
-    --         Normal = Vector( 0, 0, 0.8 ),
-
-    --         Hit = true,
-    --         HitWorld = true,
-    --         Entity = self,
-    --         Contents = CONTENTS_SOLID,
-    --         SurfaceFlags = SURF_SKY,
-    --     }
-    -- end
-
     if not Scythe then return end
     if not Scythe.loadedMaps[1] then return end
-
-    -- if not isbox then return end
 
     local map = Scythe.loadedMaps[1]
     local trace = {
@@ -121,28 +54,6 @@ function ENT:TestCollision( startpos, delta, isbox, extents, mask )
         maxs = isbox and extents or nil,
         whitelist = true, -- DEBUG!
     }
-
-    -- if extents.x == 0 and extents.y == 0 then return end
-
-    -- if not isBox and extents and extents.x == 8 then
-    --     print("trace")
-    -- end
-
-    -- local result = map.bspPhys:traceHull(trace)
-    -- print("custom:")
-    -- PrintTable(result)
-    -- print("extents:", extents)
-    -- print("mask:", mask)
-    -- print()
-
-    -- print("native:")
-    -- PrintTable(util.TraceHull(trace))
-    -- print("start:", startpos)
-    -- print()
-    -- print()
-    -- print()
-
-    -- return result
 
     return map.bspPhys:traceHull(trace)
 end

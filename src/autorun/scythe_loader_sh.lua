@@ -42,4 +42,19 @@ setmetatable(Environment, {
     end,
 })
 
+hook.Add("GLuaTest_EnvCreated", "Scythe.swapRequire", function(_, meta, _)
+    local originalIndex = meta.__index
+    meta.__index = function(this, index)
+        return Environment[index] or originalIndex(this, index)
+    end
+end)
+
+hook.Add("GLuaTest_RunTestFiles", "Scythe.hookRequire", function(testFiles)
+    for _, testFile in ipairs(testFiles) do
+        for _, case in ipairs(testFile.cases) do
+            setfenv(case.func, Environment)
+        end
+    end
+end)
+
 Scythe = evilRequire("scythe.scythe_sh")
