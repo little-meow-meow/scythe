@@ -24,12 +24,25 @@ AddCSLuaFiles("scythe")
 
 local Environment = {}
 
+local Cache = {}
+
 --- Effectively a wrapper around `include` to make it more like standard Lua `require`
+--- A given file will only be executed the first time it is required.
 --- @param path string File path to require
 local function evilRequire(path)
     local func = CompileFile(path:Replace(".", "/") .. ".lua")
-    setfenv(func, Environment)
-    return func()
+
+    local cacheInfo = Cache[path] or {}
+    local fileHash = util.SHA256(string.dump(func))
+    if fileHash ~= cacheInfo.hash then
+        setfenv(func, Environment)
+
+        cacheInfo.value = { func() }
+        cacheInfo.hash = fileHash
+        Cache[path] = cacheInfo
+    end
+
+    return unpack(cacheInfo.value)
 end
 
 Environment.__require = require

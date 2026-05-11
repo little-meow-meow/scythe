@@ -18,6 +18,7 @@ local record Scythe
 
         bspData: BSPData
         bspOcclusion: BSPOcclusion
+        bspPhys: BSPPhys
         renderer: BSPRenderer
     end
 
