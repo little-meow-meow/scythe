@@ -20888,6 +20888,7 @@ global interface GVector
     metamethod __add: function(GVector, value: GVector): GVector
     metamethod __sub: function(GVector, value: GVector): GVector
     metamethod __mul: function(GVector, value: GVector): GVector
+    metamethod __mul: function(GVector, value: number): GVector
     metamethod __div: function(GVector, value: GVector): GVector
 
     x: number

@@ -90,7 +90,7 @@ local function assemble(vertices: {Renderable.Vertex}, primitiveType: number, pr
     }
 end
 
-local function buildDisplacement(face: BSPData.Face, bspData: BSPData): Renderable
+function BSPRenderer:buildDisplacement(face: BSPData.Face): Renderable
     local s = face.texture.textureVecs[1]
     local t = face.texture.textureVecs[2]
 
@@ -99,8 +99,6 @@ local function buildDisplacement(face: BSPData.Face, bspData: BSPData): Renderab
     local surfaceTangent = sVector:Cross(tVector)
     local negateTangentS = face.plane.normal:Dot(surfaceTangent) > 0.0 and -1 or 1
     local wantsTangents = bit.band(face.texture.flags, SURFDRAW_TANGENTSPACE)
-
-    local vertices: {Renderable.Vertex} = {}
 
     local displacementInfo = face.displacementInfo as BSPData.DisplacementInfo
 
@@ -127,14 +125,155 @@ local function buildDisplacement(face: BSPData.Face, bspData: BSPData): Renderab
         corners = rotatedCorners
     end
 
-    -- TODO: Displacement construction
-    -- TODO: Displacement vertex lightmap coordinates
-    -- TODO: Fan triangles
+    local sideLength = displacementInfo.sideLength
+
+    -- Displacement construction
+    local vertices: {Renderable.Vertex} = {}
+    for y = 0, sideLength - 1 do
+        local ratioY = y / (sideLength - 1)
+        local referenceVector0 = LerpVector(ratioY, corners[0], corners[1])
+        local referenceVector1 = LerpVector(ratioY, corners[3], corners[2])
+
+        for x = 0, sideLength - 1 do
+            local dispVertex = displacementInfo.vertices[(y * sideLength) + x]
+            local ratioX = x / (sideLength - 1)
+
+            local vertex: Renderable.Vertex = {}
+            vertex.position = LerpVector(ratioX, referenceVector0, referenceVector1) as GVector
+
+            vertex.position.x = vertex.position.x + dispVertex.position.x * dispVertex.distance
+            vertex.position.y = vertex.position.y + dispVertex.position.y * dispVertex.distance
+            vertex.position.z = vertex.position.z + dispVertex.position.z * dispVertex.distance
+
+            vertex.normal = Vector(0, 0, 0)
+            vertex.color = Color(0xFF, 0xFF, 0xFF, dispVertex.alpha) as Types.ColorRGBA
+
+            vertex.lightmapU = ratioX
+            vertex.lightmapV = ratioY
+
+            vertices[y * sideLength + x] = vertex
+        end
+    end
+
+    -- Calculate normals
+    local v0: GVector = nil
+    local v1: GVector = nil
+    local w = sideLength
+    for y = 0, w - 1 do
+        for x = 0, w - 1 do
+            local v = vertices[y * w + x]
+            local x0 = x - 1
+            local x1 = x
+            local x2 = x + 1
+            local y0 = y - 1
+            local y1 = y
+            local y2 = y + 1
+
+            local count = 0
+
+            -- top left
+            if x0 >= 0 and y0 >= 0 then
+                v0 = vertices[y1*w+x0].position - vertices[y0*w+x0].position
+                v1 = vertices[y0*w+x1].position - vertices[y0*w+x0].position
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                v0 = vertices[y1*w+x0].position - vertices[y0*w+x1].position
+                v1 = vertices[y1*w+x1].position - vertices[y0*w+x1].position
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                count = count + 2
+            end
+
+            -- top right
+            if x2 < w and y0 >= 0 then
+                v0 = vertices[y1*w+x1].position - vertices[y0*w+x1].position
+                v1 = vertices[y0*w+x2].position - vertices[y0*w+x1].position
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                v0 = vertices[y1*w+x1].position - vertices[y0*w+x2].position
+                v1 = vertices[y1*w+x2].position - vertices[y0*w+x2].position
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                count = count + 2
+            end
+
+            -- bottom left
+            if x0 >= 0 and y2 < w then
+                v0 = vertices[y2*w+x0].position - vertices[y1*w+x0].position
+                v1 = vertices[y1*w+x1].position - vertices[y1*w+x0].position
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                v0 = vertices[y2*w+x0].position - vertices[y1*w+x1].position
+                v1 = vertices[y2*w+x1].position - vertices[y1*w+x1].position
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                count = count + 2
+            end
+
+            -- bottom right
+            if x2 < w and y2 < w then
+                v0 = vertices[y2*w+x1].position - vertices[y1*w+x1].position
+                v1 = vertices[y1*w+x2].position - vertices[y1*w+x1].position
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                v0 = vertices[y2*w+x1].position - vertices[y1*w+x2].position
+                v1 = vertices[y2*w+x2].position - vertices[y1*w+x2].position
+                v0 = v1:Cross(v0)
+                v0:Normalize()
+                v.normal = v.normal + v0
+
+                count = count + 2
+            end
+
+            v.normal = v.normal * (1 / count)
+        end
+    end
+
+    -- Texture coords
+    for dispVertIndexOffset, vertex in ipairs(vertices) do
+        local u = vertex.position:Dot(sVector) + s.w
+        local v = vertex.position:Dot(tVector) + t.w
+        vertex.baseTextureU = u / face.texture.data.width
+        vertex.baseTextureV = v / face.texture.data.height
+
+        -- TODO: Lightmaps
+        -- vertex.lightmapU = ( vertex.lightmapU * ( face.lightmapLuxelSize[1] ) + 0.5 ) / lightmapData.pow2Width
+        -- vertex.lightmapV = ( vertex.lightmapV * ( face.lightmapLuxelSize[2] ) + 0.5 ) / lightmapData.pow2Height
+    end
+
+    -- Fan triangles
+    local _vertices = vertices
+    vertices = {}
+    for y = 0, sideLength - 2 do
+        for x = 0, sideLength - 2 do
+            local base = y * sideLength + x
+            table.insert(vertices, _vertices[base])
+            table.insert(vertices, _vertices[base + sideLength])
+            table.insert(vertices, _vertices[base + sideLength + 1])
+            table.insert(vertices, _vertices[base])
+            table.insert(vertices, _vertices[base + sideLength + 1])
+            table.insert(vertices, _vertices[base + 1])
+        end
+    end
 
     return assemble(vertices, MATERIAL_TRIANGLES, #vertices / 3, face)
 end
 
-local function buildBrushFace(face: BSPData.Face, bspData: BSPData): Renderable
+function BSPRenderer:buildBrushFace(face: BSPData.Face): Renderable
     local s = face.texture.textureVecs[1]
     local t = face.texture.textureVecs[2]
 
@@ -155,8 +294,8 @@ local function buildBrushFace(face: BSPData.Face, bspData: BSPData): Renderable
         vertex.baseTextureV = (vertexPosition:Dot(tVector) + t.w) / face.texture.data.height
 
         if wantsTangents then
-            local vertexIndex = bspData.vertexIndices[face.firstEdgeIndex + edgeIndexOffset]
-            local vertNormal = bspData.vertexNormals[bspData.vertexNormalIndices[vertexIndex]]
+            local vertexIndex = self.bspData.vertexIndices[face.firstEdgeIndex + edgeIndexOffset]
+            local vertNormal = self.bspData.vertexNormals[self.bspData.vertexNormalIndices[vertexIndex]]
             local tangentS = vertNormal:Cross(tVector)
             tangentS:Normalize()
             local tangentT = tangentS:Cross(vertNormal)
@@ -187,9 +326,9 @@ function BSPRenderer:buildRenderables()
     for faceIndex, face in pairs(self.bspData.faces) do
         local renderable: Renderable = nil
         if face.displacementInfoIndex == -1 then
-            renderable = buildBrushFace(face, self.bspData)
+            renderable = self:buildBrushFace(face)
         else
-            -- renderable = buildDisplacement(face, self.bspData)
+            renderable = self:buildDisplacement(face)
         end
         self.faceToRenderableMap[face] = renderable
         table.insert(self.renderables, renderable)
