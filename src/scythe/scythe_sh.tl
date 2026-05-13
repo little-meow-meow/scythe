@@ -56,11 +56,13 @@ end
 
 Scythe.loadMap("maps/gm_construct.bsp")
 
-if #ents.FindByClass("virtual_worldspawn") <= 0 then
-    local worldspawn = ents.Create("virtual_worldspawn")
-    worldspawn:SetPos(Vector(0, 0, 0))
-    worldspawn:Spawn()
-end
+timer.Simple(0.1, function()
+    if #ents.FindByClass("virtual_worldspawn") <= 0 then
+        local worldspawn = ents.Create("virtual_worldspawn")
+        worldspawn:SetPos(Vector(0, 0, 0))
+        worldspawn:Spawn()
+    end
+end)
 
 if CLIENT then
 
