@@ -55,5 +55,12 @@ function ENT:TestCollision( startpos, delta, isbox, extents, mask )
         whitelist = true, -- DEBUG!
     }
 
+    if extents.z == 18 or extents.z == 36 then
+        trace.mins = Vector(-extents.x, -extents.y, 0)
+        trace.maxs = Vector(extents.x, extents.y, 18)
+        trace.start = trace.start - Vector(0, 0, 36)
+        -- trace.endpos = trace.start + delta
+    end
+
     return map.bspPhys:traceHull(trace)
 end
