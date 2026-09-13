@@ -19,51 +19,51 @@ function BSPPhys.new(bspData: BSPData): BSPPhys
     return phys
 end
 
-function BSPPhys:recurseTree(nodeIndex: integer, p1: GVector, p2: GVector, trace: S_HullTrace, result: S_TraceResult): boolean
-    if nodeIndex < 0 then
-        local leaf = self.bspData.leaves[-1 - nodeIndex]
-        if bit.band(leaf.contents, CONTENTS_SOLID) == CONTENTS_SOLID then
-            result.Hit = true
-            result.HitWorld = true
-            result.HitPos = p1
-            result.Entity = Entity(0)
-            result.Contents = leaf.contents
-            return true
-        else
-            return false
-        end
-    end
+-- function BSPPhys:recurseTree(nodeIndex: integer, p1: GVector, p2: GVector, trace: S_HullTrace, result: S_TraceResult): boolean
+--     if nodeIndex < 0 then
+--         local leaf = self.bspData.leaves[-1 - nodeIndex]
+--         if bit.band(leaf.contents, CONTENTS_SOLID) == CONTENTS_SOLID then
+--             result.Hit = true
+--             result.HitWorld = true
+--             result.HitPos = p1
+--             result.Entity = Entity(0)
+--             result.Contents = leaf.contents
+--             return true
+--         else
+--             return false
+--         end
+--     end
 
-    local node = self.bspData.nodes[nodeIndex]
-    local plane = node.plane
-    local t1 = plane.normal:Dot(p1) - plane.distance
-    local t2 = plane.normal:Dot(p2) - plane.distance
+--     local node = self.bspData.nodes[nodeIndex]
+--     local plane = node.plane
+--     local t1 = plane.normal:Dot(p1) - plane.distance
+--     local t2 = plane.normal:Dot(p2) - plane.distance
 
-    -- Handle cases where the line segment lies entirely within a single child.
-    if t1 >= 0 and t2 >= 0 then
-        return self:recurseTree(node.childIndices[1], p1, p2, trace, result)
-    end
-    if t1 < 0 and t2 < 0 then
-        return self:recurseTree(node.childIndices[2], p1, p2, trace, result)
-    end
+--     -- Handle cases where the line segment lies entirely within a single child.
+--     if t1 >= 0 and t2 >= 0 then
+--         return self:recurseTree(node.childIndices[1], p1, p2, trace, result)
+--     end
+--     if t1 < 0 and t2 < 0 then
+--         return self:recurseTree(node.childIndices[2], p1, p2, trace, result)
+--     end
 
-    -- Find the point of intersection with the split plane
-    local fraction = t1 / (t1 - t2)
-    local midpoint = Vector(0, 0, 0)
-    midpoint.x = p1.x + fraction * (p2.x - p1.x)
-    midpoint.y = p1.y + fraction * (p2.y - p1.y)
-    midpoint.z = p1.z + fraction * (p2.z - p1.z)
+--     -- Find the point of intersection with the split plane
+--     local fraction = t1 / (t1 - t2)
+--     local midpoint = Vector(0, 0, 0)
+--     midpoint.x = p1.x + fraction * (p2.x - p1.x)
+--     midpoint.y = p1.y + fraction * (p2.y - p1.y)
+--     midpoint.z = p1.z + fraction * (p2.z - p1.z)
 
-    local side = t1 >= 0 and 1 or 2
+--     local side = t1 >= 0 and 1 or 2
 
-    -- Trace through child nodes in order.
-    result.HitNormal = plane.normal
-    if self:recurseTree(node.childIndices[side], p1, midpoint, trace, result) then
-        return true
-    end
+--     -- Trace through child nodes in order.
+--     result.HitNormal = plane.normal
+--     if self:recurseTree(node.childIndices[side], p1, midpoint, trace, result) then
+--         return true
+--     end
 
-    return self:recurseTree(node.childIndices[3 - side], midpoint, p2, trace, result)
-end
+--     return self:recurseTree(node.childIndices[3 - side], midpoint, p2, trace, result)
+-- end
 
 -- function BSPPhys:traceLine(input: S_HullTrace): S_TraceResult
 --     local trace = TraceInfo.new(input)
@@ -185,7 +185,6 @@ function BSPPhys:CM_ClipBoxToBrush(traceInfo: TraceInfo, brush: BSPData.Brush)
         traceInfo.output.Contents = brushContents
 
         if not getOut then
-            traceInfo.output.Hit = true
             traceInfo.output.AllSolid = true
             traceInfo.output.Fraction = 0
             traceInfo.output.FractionLeftSolid = 1
@@ -211,7 +210,6 @@ function BSPPhys:CM_ClipBoxToBrush(traceInfo: TraceInfo, brush: BSPData.Brush)
         enterFraction = 0
     end
 
-    traceInfo.output.Hit = true
     traceInfo.output.Fraction = enterFraction
     -- TODO: pTraceInfo->m_bDispHit = false
     -- TODO: traceInfo.output.SurfaceFlags =
@@ -250,6 +248,11 @@ function BSPPhys:CM_TraceToLeaf(traceInfo: TraceInfo, leafIndex: integer, startF
 end
 
 function BSPPhys:CM_RecursiveHullCheckImpl(traceInfo: TraceInfo, nodeIndex: integer, p1fraction: number, p2fraction: number, p1: GVector, p2: GVector)
+    if traceInfo.output.Fraction <= p1fraction then
+        -- "already hit something nearer"
+        return
+    end
+
     local node: BSPData.PartitionNode
     local t1: number = 0
     local t2: number = 0
@@ -334,20 +337,20 @@ function BSPPhys:CM_BoxTrace(traceInfo: TraceInfo, headNodeIndex: integer)
 
     -- "The ray start is the center of the extents; compute the actual start"
     -- TODO: We don't have Ray_t.m_StartOffset from TestCollision :(
+    local start = traceInput.start -- - traceInput.startOffset
 
-    traceOutput.HitPos = LerpVector(traceOutput.Fraction, traceInput.start, traceInput.endpos)
+    traceOutput.HitPos = LerpVector(traceOutput.Fraction, start, traceInput.endpos)
 
     if traceOutput.FractionLeftSolid == 0 then
-        -- traceOutput.StartPos = traceInput.start
+        traceOutput.StartPos = start
     else
         if traceOutput.FractionLeftSolid == 1 then
-            traceInfo.output.Hit = true
             traceOutput.StartSolid = true
             traceOutput.AllSolid = true
             traceOutput.Fraction = 0
         end
 
-        -- TODO: VectorMA? ...
+        traceOutput.StartPos = LerpVector(traceOutput.FractionLeftSolid, start, traceInput.endpos)
     end
 end
 
@@ -355,7 +358,8 @@ function BSPPhys:trace(traceInfo: TraceInfo)
     if not traceInfo.input.ignoreworld then
         self:CM_BoxTrace(traceInfo, 0)
 
-        if traceInfo.output.Hit then
+        if traceInfo.output.Fraction < 1 then
+            traceInfo.output.Hit = true
             traceInfo.output.Entity = Entity(0)
             traceInfo.output.HitWorld = true
         end
@@ -374,10 +378,16 @@ function BSPPhys:trace(traceInfo: TraceInfo)
     -- TODO: Collide with entities
 
     -- traceInfo.output.Normal = (traceInfo.output.HitPos - traceInfo.output.StartPos):GetNormalized()
+
+    if not traceInfo:isRay() then
+        -- "Make sure no fractionleftsolid can be used with box sweeps"
+        traceInfo.output.StartPos = traceInfo.input.start -- - traceInfo.input.startOffset
+        traceInfo.output.FractionLeftSolid = 0
+    end
 end
 
-function BSPPhys:traceHull(input: S_HullTrace): S_TraceResult
-    local traceInfo = TraceInfo.new(input)
+function BSPPhys:traceHull(_input: S_HullTrace): S_TraceResult
+    local traceInfo = TraceInfo.new(_input)
     self:trace(traceInfo)
     return traceInfo.output
 end
