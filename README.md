@@ -1,5 +1,5 @@
 # Scythe
-[![Build & Test](https://github.com/little-meow-meow/scythe/actions/workflows/gluatest.yml/badge.svg)](https://github.com/little-meow-meow/scythe/actions/workflows/gluatest.yml?branch=main)
+[![Build & Test](https://github.com/little-meow-meow/scythe/actions/workflows/gluatest.yml/badge.svg?branch=main)](https://github.com/little-meow-meow/scythe/actions/workflows/gluatest.yml?query=branch%3Amain)
 <br /><a href="https://ko-fi.com/little_meow_meow"><img src="https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/670f5a01c01ea9191809398c_support_me_on_kofi_blue.png" height="28px"></a>
 
 > [!IMPORTANT]
