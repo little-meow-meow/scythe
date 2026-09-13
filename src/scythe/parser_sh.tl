@@ -117,7 +117,7 @@ local function parseDisplacements(reader: ByteReader, data: BSPData)
         }
     end
 
-    local displacementInfos: {BSPData.DisplacementInfo} = {}
+    local displacementInfos: {BSPData.DisplacementInfo} = data.displacementInfos
     header = data.header.lumpHeaders[LUMP_DISPINFO]
     reader:seek(header.offset)
     for i = 0, math.floor(header.length / 176) - 1 do
