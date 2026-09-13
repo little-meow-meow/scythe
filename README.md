@@ -1,5 +1,9 @@
 # Scythe
 [![Build & Test](https://github.com/little-meow-meow/scythe/actions/workflows/gluatest.yml/badge.svg)](https://github.com/little-meow-meow/scythe/actions/workflows/gluatest.yml?branch=main)
+<br /><a href="https://ko-fi.com/little_meow_meow"><img src="https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/670f5a01c01ea9191809398c_support_me_on_kofi_blue.png" height="28px"></a>
+
+> [!IMPORTANT]
+> This project was not written with AI and does not accept AI-generated contributions.
 
 Scythe is a dynamic map loader for Garry's Mod. Instead of depending on the Source engine, Scythe completely re-implements a massive chunk of the engine in pure Lua.
 
@@ -46,6 +50,8 @@ The list of possibilities is truly massive and certainly beyond what I've listed
 - Static prop manipulation
 
 ## Contributing
+This project accepts pull requests. Scythe is still in early development so please get in contact with me for guidance before making substantial changes.
+
 Check out the [roadmap](ROADMAP.md) to see what's planned.
 
 ### Building
