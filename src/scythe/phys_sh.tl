@@ -336,10 +336,12 @@ function BSPPhys:CM_BoxTrace(traceInfo: TraceInfo, headNodeIndex: integer)
     -- CM_ComputeTraceEndpoints below
 
     -- "The ray start is the center of the extents; compute the actual start"
-    -- TODO: We don't have Ray_t.m_StartOffset from TestCollision :(
-    local start = traceInput.start -- - traceInput.startOffset
+    -- IMPORTANT: See notes in virtual_worldspawn.lua
+    local startOffset = traceInput.startOffset or Vector(0, 0, 0)
+    local start = traceInput.start - startOffset
+    local delta = (traceInput.endpos - startOffset) - start
 
-    traceOutput.HitPos = LerpVector(traceOutput.Fraction, start, traceInput.endpos)
+    traceOutput.HitPos = LerpVector(traceOutput.Fraction, start, start + delta)
 
     if traceOutput.FractionLeftSolid == 0 then
         traceOutput.StartPos = start
@@ -348,9 +350,10 @@ function BSPPhys:CM_BoxTrace(traceInfo: TraceInfo, headNodeIndex: integer)
             traceOutput.StartSolid = true
             traceOutput.AllSolid = true
             traceOutput.Fraction = 0
+            traceOutput.HitPos = start
         end
 
-        traceOutput.StartPos = LerpVector(traceOutput.FractionLeftSolid, start, traceInput.endpos)
+        traceOutput.StartPos = LerpVector(traceOutput.FractionLeftSolid, start, start + delta)
     end
 end
 
@@ -381,7 +384,7 @@ function BSPPhys:trace(traceInfo: TraceInfo)
 
     if not traceInfo:isRay() then
         -- "Make sure no fractionleftsolid can be used with box sweeps"
-        traceInfo.output.StartPos = traceInfo.input.start -- - traceInfo.input.startOffset
+        -- traceInfo.output.StartPos = traceInfo.input.start - traceInfo.input.startOffset
         traceInfo.output.FractionLeftSolid = 0
     end
 end

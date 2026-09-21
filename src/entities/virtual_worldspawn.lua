@@ -49,18 +49,33 @@ function ENT:TestCollision( startpos, delta, isbox, extents, mask )
         start = startpos,
         endpos = startpos + delta,
         mask = mask,
-        -- TODO: Uh oh, I don't think we have access to the real mins/maxs of the trace!
         mins = isbox and -extents or nil,
         maxs = isbox and extents or nil,
         whitelist = true, -- DEBUG!
     }
 
-    if extents.z == 18 or extents.z == 36 then
-        trace.mins = Vector(-extents.x, -extents.y, 0)
-        trace.maxs = Vector(extents.x, extents.y, 18)
-        trace.start = trace.start - Vector(0, 0, 36)
-        -- trace.endpos = trace.start + delta
+    -- IMPORTANT: TestCollision's `startpos` argument has `Ray_t.m_StartOffset` reversed.
+    -- The `extents` argument is still centered (as in `Ray_t::Init`).
+    -- The hook needs an API change for accurate player movement with `CGameMovement::TryTouchGroundInQuadrants`
+
+    -- IMPORTANT: This hook is only called for traces that hit entities and do not filter this entity.
+    -- A more general-purpose hook is needed for overriding *all* CEngineTrace::TraceRay calls.
+
+    if isbox then
+        -- This is a hack to make player movement (somewhat) precise.
+        -- The original hull bounding box is lost in `Ray_t::Init` and we need it to accurately perform hull traces.
+        trace.startOffset = Vector(0, 0, extents.z)
+        trace.start = trace.start + trace.startOffset
+        trace.endpos = trace.start + delta
     end
 
-    return map.bspPhys:traceHull(trace)
+    -- TODO: Once the needed GLua API changes are available, `Ray_t::Init`'s hull
+    -- trace centering behavior should be moved to `BSPPhys:traceHull`.
+
+    local tr = map.bspPhys:traceHull(trace)
+
+    -- IMPORTANT: TestCollision's `Normal` is E_TraceResult's `HitNormal`
+    tr.Normal = tr.HitNormal
+
+    return tr
 end

@@ -32500,6 +32500,8 @@ global interface S_HullTrace
     --- Enables traces to hit clientside only entities. Keep in mind that most naturally spawned entities are classified as debris, so extra `mask` values might be required.
     hitclientonly: boolean
 
+    startOffset: GVector -- non-standard!!
+
 end
 --- Table structure used for render.SetLocalModelLights.
 global record S_LocalLight
